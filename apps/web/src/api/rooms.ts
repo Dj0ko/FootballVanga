@@ -1,6 +1,6 @@
 import type { ParticipantSession, PredictionStatus } from "@footballvanga/shared";
 
-import type { CreateRoomInput, RoomParticipant, RoomSummary } from "../data/mockFootball";
+import type { CompletedMatchResult, CreateRoomInput, RoomParticipant, RoomSummary } from "../data/mockFootball";
 
 type ApiRoomSummary = {
   deadlineIso: string;
@@ -12,6 +12,10 @@ type ApiRoomSummary = {
 
 type RoomsResponse = {
   rooms: ApiRoomSummary[];
+};
+
+type MatchHistoryResponse = {
+  results: CompletedMatchResult[];
 };
 
 type CreateRoomResponse = {
@@ -102,6 +106,12 @@ export const fetchRooms = async () => {
   const response = await requestJson<RoomsResponse>("/api/rooms");
 
   return response.rooms.map(toRoomSummary);
+};
+
+export const fetchMatchHistory = async () => {
+  const response = await requestJson<MatchHistoryResponse>("/api/match-history");
+
+  return Array.isArray(response.results) ? response.results : [];
 };
 
 export const createRoom = async (input: CreateRoomInput) => {

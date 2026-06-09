@@ -21,8 +21,8 @@ FootballVanga is a fast-moving football prediction project intended to be deploy
 ## Current Implementation Notes
 
 - The current frontend has a welcome screen followed by an API-backed rooms/participant flow and an API-backed prediction workspace.
-- The frontend currently uses backend API calls for room list, room creation, room password entry, participant entry, and room participant lists after participant entry.
+- The frontend currently uses backend API calls for room list, room creation, room password entry, participant entry, room participant lists after participant entry, match history, and prediction reads/writes.
 - The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts` for tournament display and leaderboards.
-- Prediction reads/writes, room, and participant flows require the API. Without `DATABASE_URL`, the API uses in-memory room, participant, and prediction storage; with `DATABASE_URL`, it uses PostgreSQL after migrations.
+- Prediction reads/writes, match history, room, and participant flows require the API. Without `DATABASE_URL`, the API uses in-memory room, participant, prediction, and match result storage; with `DATABASE_URL`, it uses PostgreSQL after migrations.
 - For UI-only local work, use `npm run dev -w apps/web` and open `http://localhost:5173/`.
 - The root `npm run dev` starts both web and api and is not needed for current UI-only checks.

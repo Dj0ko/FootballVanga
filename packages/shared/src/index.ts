@@ -61,6 +61,12 @@ export type MatchPrediction = {
   score: ScoreLine;
 };
 
+export type MatchResult = {
+  matchId: MatchId;
+  score: ScoreLine;
+  finishedAtIso: string;
+};
+
 export type GroupStandingPrediction = {
   groupId: GroupId;
   teamId: TeamId;

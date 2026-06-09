@@ -21,9 +21,11 @@ import {
 } from "./adminAuth.js";
 import { type ApiConfig, readConfig } from "./config.js";
 import { createDatabasePool } from "./database.js";
+import { createInMemoryMatchResultRepository } from "./inMemoryMatchResultRepository.js";
 import { createInMemoryParticipantRepository } from "./inMemoryParticipantRepository.js";
 import { createInMemoryPredictionRepository } from "./inMemoryPredictionRepository.js";
 import { createInMemoryFootballStore, createInMemoryRoomRepository } from "./inMemoryRoomRepository.js";
+import { createMatchResultRepository, type MatchResultRepository } from "./matchResultRepository.js";
 import { createParticipantRepository, type ParticipantRepository } from "./participantRepository.js";
 import { hashPassword, verifyPassword } from "./passwordHash.js";
 import { createPredictionRepository, type PredictionRepository } from "./predictionRepository.js";
@@ -64,65 +66,12 @@ type SavePredictionBody = {
   matchScores?: unknown;
 };
 
-type MatchResultRecord = {
-  finishedAtIso: string;
-  matchId: string;
-  score: {
-    away: number;
-    home: number;
-  };
-};
-
 type BuildServerDependencies = {
+  matchResultRepository?: MatchResultRepository | null;
   participantRepository?: ParticipantRepository | null;
   predictionRepository?: PredictionRepository | null;
   roomRepository?: RoomRepository | null;
 };
-
-const matchResultsById = new Map<string, MatchResultRecord>(
-  [
-    {
-      matchId: "a-1",
-      finishedAtIso: "2026-06-11T21:00:00Z",
-      score: {
-        home: 2,
-        away: 1
-      }
-    },
-    {
-      matchId: "a-2",
-      finishedAtIso: "2026-06-12T04:00:00Z",
-      score: {
-        home: 1,
-        away: 1
-      }
-    },
-    {
-      matchId: "b-1",
-      finishedAtIso: "2026-06-12T21:00:00Z",
-      score: {
-        home: 0,
-        away: 2
-      }
-    },
-    {
-      matchId: "d-1",
-      finishedAtIso: "2026-06-13T03:00:00Z",
-      score: {
-        home: 3,
-        away: 1
-      }
-    },
-    {
-      matchId: "b-2",
-      finishedAtIso: "2026-06-13T21:00:00Z",
-      score: {
-        home: 1,
-        away: 0
-      }
-    }
-  ].map((result) => [result.matchId, result])
-);
 
 const isScoreValue = (value: unknown): value is number =>
   Number.isInteger(value) && Number(value) >= 0 && Number(value) <= 99;
@@ -132,11 +81,6 @@ const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
 
 const MIN_ROOM_PASSWORD_LENGTH = 4;
 const MIN_PARTICIPANT_CODE_LENGTH = 4;
-
-const getMatchResults = () =>
-  Array.from(matchResultsById.values()).sort(
-    (leftResult, rightResult) => Date.parse(rightResult.finishedAtIso) - Date.parse(leftResult.finishedAtIso)
-  );
 
 const isAdminConfigured = (config: ApiConfig) => Boolean(config.adminPasswordHash && config.adminSessionSecret);
 
@@ -312,6 +256,7 @@ const createParticipantSession = async (
 
 export const buildServer = async (config: ApiConfig = readConfig(), dependencies: BuildServerDependencies = {}) => {
   const shouldCreateStorage =
+    dependencies.matchResultRepository === undefined &&
     dependencies.roomRepository === undefined &&
     dependencies.participantRepository === undefined &&
     dependencies.predictionRepository === undefined;
@@ -337,6 +282,15 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
         ? createInMemoryPredictionRepository(inMemoryStore)
         : null
     : null;
+  const matchResultRepository = shouldCreateStorage
+    ? databasePool
+      ? createMatchResultRepository(databasePool)
+      : inMemoryStore
+        ? createInMemoryMatchResultRepository(inMemoryStore)
+        : null
+    : null;
+  const resolvedMatchResultRepository =
+    dependencies.matchResultRepository === undefined ? matchResultRepository : dependencies.matchResultRepository;
   const resolvedRoomRepository = dependencies.roomRepository === undefined ? roomRepository : dependencies.roomRepository;
   const resolvedParticipantRepository =
     dependencies.participantRepository === undefined ? participantRepository : dependencies.participantRepository;
@@ -715,9 +669,18 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
     }
   );
 
-  app.get("/api/match-history", async () => ({
-    results: getMatchResults()
-  }));
+  app.get("/api/match-history", async (_request, reply) => {
+    if (!resolvedMatchResultRepository) {
+      reply.code(503);
+      return {
+        message: "Match result storage is not configured."
+      };
+    }
+
+    return {
+      results: await resolvedMatchResultRepository.listMatchResults()
+    };
+  });
 
   app.get("/api/admin/session", async (request) => ({
     authenticated: hasAdminSession(config, request.headers.cookie),
@@ -779,7 +742,14 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
         };
       }
 
-      const { away, home } = request.body;
+      if (!resolvedMatchResultRepository) {
+        reply.code(503);
+        return {
+          message: "Match result storage is not configured."
+        };
+      }
+
+      const { away, home } = request.body ?? {};
 
       if (!isScoreValue(home) || !isScoreValue(away)) {
         reply.code(400);
@@ -788,17 +758,20 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
         };
       }
 
-      const previousResult = matchResultsById.get(request.params.matchId);
-      const result: MatchResultRecord = {
+      const result = await resolvedMatchResultRepository.saveMatchResult({
         matchId: request.params.matchId,
-        finishedAtIso: previousResult?.finishedAtIso ?? new Date().toISOString(),
         score: {
           away,
           home
         }
-      };
+      });
 
-      matchResultsById.set(result.matchId, result);
+      if (!result) {
+        reply.code(404);
+        return {
+          message: "Match was not found."
+        };
+      }
 
       return {
         ok: true,

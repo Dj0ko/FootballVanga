@@ -1,4 +1,5 @@
 import type {
+  MatchResult,
   MatchPrediction as ApiMatchPrediction,
   ParticipantPrediction,
   PredictionStatus,
@@ -26,14 +27,7 @@ export type MatchScore = {
   away: number | "";
 };
 
-export type CompletedMatchResult = {
-  finishedAtIso: string;
-  matchId: string;
-  score: {
-    away: number;
-    home: number;
-  };
-};
+export type CompletedMatchResult = MatchResult;
 
 export type Participant = {
   name: string;

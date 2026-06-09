@@ -3,9 +3,9 @@ import { useState } from "react";
 
 import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineCountdown";
 import {
-  completedMatchResults,
   globalLeaders,
   matches,
+  type CompletedMatchResult,
   type CreateRoomInput,
   type RoomSummary
 } from "../../data/mockFootball";
@@ -18,6 +18,8 @@ type RoomsScreenProps = {
   error: string;
   isCreatePending: boolean;
   isLoading: boolean;
+  matchResults: CompletedMatchResult[];
+  matchResultsError: string;
   rooms: RoomSummary[];
   onCreateRoom: (room: CreateRoomInput) => Promise<boolean>;
   onOpenRoom: (room: RoomSummary) => void;
@@ -47,6 +49,8 @@ export function RoomsScreen({
   error,
   isCreatePending,
   isLoading,
+  matchResults,
+  matchResultsError,
   rooms,
   onCreateRoom,
   onOpenRoom,
@@ -151,7 +155,8 @@ export function RoomsScreen({
             ) : null}
           </section>
 
-          <MatchResultsHistory matches={matches} results={completedMatchResults} />
+          {matchResultsError ? <p className={styles.inlineError}>{matchResultsError}</p> : null}
+          <MatchResultsHistory matches={matches} results={matchResults} />
         </div>
 
         <RoomsLeaderboard leaders={globalLeaders} />

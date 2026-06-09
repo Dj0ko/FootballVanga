@@ -169,7 +169,7 @@ POST /api/admin/scoring/recalculate
 
 Admin/operator endpoints must use operator-only authorization. Room passwords, participant codes, and participant sessions must not grant access to result writes.
 
-The first admin implementation can use a single operator password hash from environment variables plus an HTTP-only admin session cookie. Result writes may be in-memory during scaffold work, but production result storage belongs in PostgreSQL.
+The first admin implementation can use a single operator password hash from environment variables plus an HTTP-only admin session cookie. Result writes use PostgreSQL when `DATABASE_URL` is configured and fall back to in-memory storage for local no-database checks.
 
 Current room endpoints use the same API shape in both storage modes:
 
@@ -277,7 +277,7 @@ npm run admin:session-secret
 3. Real room creation, public room list, room entry, and room password hashes. Completed as API-backed room endpoints with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 4. Participant display-name entry, participant code hashes, and participant session ownership. Completed as API-backed participant entry with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 5. Prediction persistence for group standings and match scores, with backend deadline enforcement. Completed as API-backed prediction reads/writes with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
-6. PostgreSQL-backed match results from the hidden admin result-entry screen.
+6. PostgreSQL-backed match results from the hidden admin result-entry screen. Completed as API-backed result reads/writes with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 7. Scoring recalculation and room leaderboard.
 8. Deployment hardening on the VPS.
 9. Scheduled automatic result import.

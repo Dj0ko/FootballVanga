@@ -7,9 +7,15 @@ import {
   createRoom as createRoomRequest,
   enterParticipant as enterParticipantRequest,
   enterRoom,
+  fetchMatchHistory,
   fetchRooms
 } from "./api/rooms";
-import { type CreateRoomInput, type RoomParticipant, type RoomSummary } from "./data/mockFootball";
+import {
+  type CompletedMatchResult,
+  type CreateRoomInput,
+  type RoomParticipant,
+  type RoomSummary
+} from "./data/mockFootball";
 import { AdminResultsScreen } from "./screens/admin-results/AdminResultsScreen";
 import {
   RoomEntryScreen,
@@ -33,6 +39,8 @@ export default function App() {
   const [currentParticipantSession, setCurrentParticipantSession] = useState<ParticipantSession | null>(null);
   const [viewedParticipant, setViewedParticipant] = useState<RoomParticipant | null>(null);
   const [participantsByRoomId, setParticipantsByRoomId] = useState<Record<string, RoomParticipant[]>>({});
+  const [matchResults, setMatchResults] = useState<CompletedMatchResult[]>([]);
+  const [matchResultsError, setMatchResultsError] = useState("");
   const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [roomsError, setRoomsError] = useState("");
@@ -50,11 +58,22 @@ export default function App() {
     }
   }, []);
 
+  const loadMatchResults = useCallback(async () => {
+    setMatchResultsError("");
+
+    try {
+      setMatchResults(await fetchMatchHistory());
+    } catch (error) {
+      setMatchResultsError(error instanceof Error ? error.message : "Не удалось загрузить результаты матчей.");
+    }
+  }, []);
+
   useEffect(() => {
     if (screen === "rooms") {
       void loadRooms();
+      void loadMatchResults();
     }
-  }, [loadRooms, screen]);
+  }, [loadMatchResults, loadRooms, screen]);
 
   const getRoomParticipants = (roomId: string) => participantsByRoomId[roomId] ?? [];
 
@@ -198,6 +217,8 @@ export default function App() {
         error={roomsError}
         isCreatePending={isCreatingRoom}
         isLoading={isRoomsLoading}
+        matchResults={matchResults}
+        matchResultsError={matchResultsError}
         rooms={rooms}
         onCreateRoom={createRoom}
         onOpenRoom={openRoomEntry}
@@ -261,6 +282,8 @@ export default function App() {
       error={roomsError}
       isCreatePending={isCreatingRoom}
       isLoading={isRoomsLoading}
+      matchResults={matchResults}
+      matchResultsError={matchResultsError}
       rooms={rooms}
       onCreateRoom={createRoom}
       onOpenRoom={openRoomEntry}

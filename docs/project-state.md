@@ -322,21 +322,21 @@ Requires explicit user permission:
 - Opening or reloading the local app in a browser.
 - Browser-based UI testing.
 
-## Next Likely Work
+## Backend Implementation Roadmap
 
-Likely next UI/product work:
+The UI is considered complete enough for the current mock stage. The next work should move the product from local mock state to backend-backed behavior in this order:
 
-- Connect the mocked group save action to prediction persistence.
+1. PostgreSQL schema and migrations.
+2. Seed data for World Cup 2026 groups, teams, and group-stage matches.
+3. Real room creation, public room list, room entry, and room password hashes.
+4. Participant display-name entry, participant code hashes, and participant session ownership.
+5. Prediction persistence for group standings and match scores, with backend deadline enforcement.
+6. PostgreSQL-backed match results from the hidden admin result-entry screen, replacing current in-memory result storage.
+7. Scoring recalculation and room leaderboard.
+
+After these seven steps, continue with deployment hardening and scheduled automatic result sync against an external source.
+
+Open product/UI work that can wait until the backend path is underway:
+
 - Verify World Cup 2026 group-stage fixture data against FIFA before production seed/migrations.
-- Connect the mocked room creation form to real backend room creation.
 - Add a rules explanation modal/window.
-
-Likely next backend work:
-
-- Database schema and migrations.
-- Room creation and entry endpoints.
-- Backend-calculated tournament deadline from the first group-stage kickoff.
-- Participant session ownership.
-- Prediction persistence.
-- Replace in-memory admin result storage with PostgreSQL-backed result entry/correction.
-- Scheduled result sync against an external source, with exact source and schedule to be chosen later.

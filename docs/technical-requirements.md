@@ -238,14 +238,11 @@ npm run admin:session-secret
 ## MVP Implementation Order
 
 1. Database schema and migrations.
-2. Room creation and entry.
-3. Participant creation and session ownership.
-4. Tournament seed data for group stage.
-5. Backend-calculated tournament deadline.
-6. Prediction save and edit before deadline.
-7. Room prediction visibility.
-8. Rooms screen match history/results visibility.
-9. Operator-only manual result entry.
-10. Scoring and leaderboard.
-11. Deployment to VPS.
-12. Scheduled automatic result import.
+2. Seed data for World Cup 2026 groups, teams, and group-stage matches.
+3. Real room creation, public room list, room entry, and room password hashes.
+4. Participant display-name entry, participant code hashes, and participant session ownership.
+5. Prediction persistence for group standings and match scores, with backend deadline enforcement.
+6. PostgreSQL-backed match results from the hidden admin result-entry screen.
+7. Scoring recalculation and room leaderboard.
+8. Deployment hardening on the VPS.
+9. Scheduled automatic result import.

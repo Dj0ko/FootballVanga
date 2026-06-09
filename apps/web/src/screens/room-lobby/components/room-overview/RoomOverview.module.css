@@ -1,0 +1,91 @@
+.panel {
+  display: grid;
+  gap: 16px;
+  border: 1px solid #d9dfd4;
+  border-radius: 8px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #dfe5dc;
+  padding-bottom: 16px;
+}
+
+.eyebrow {
+  margin: 0 0 5px;
+  color: #277a50;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.hero h2 {
+  margin-bottom: 0;
+  font-size: 1.5rem;
+}
+
+.primaryButton {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #207d4f;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.statCard {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #e2e8df;
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+  color: #405047;
+}
+
+.statCard svg {
+  color: #207d4f;
+}
+
+.statCard span {
+  color: #68766d;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.statCard strong {
+  color: #16211b;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 780px) {
+  .hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primaryButton {
+    width: 100%;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+}

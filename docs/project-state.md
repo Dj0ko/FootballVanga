@@ -42,7 +42,12 @@ The frontend currently has:
   - non-empty room name;
   - room password with at least 8 characters.
 - A mocked all-rooms top-5 leaderboard sidebar on the rooms screen.
-- A mocked room card that opens the room/prediction workspace.
+- A mocked room card that opens the room lobby.
+- A mocked room lobby screen with:
+  - room overview in the central area;
+  - room participant sidebar on the right;
+  - room stats for participant count, submitted predictions, deadline, and match count;
+  - `Мой прогноз` action that opens the mocked room/prediction workspace.
 - A mocked room entry panel.
 - A mocked lobby with participants.
 - Mocked group standing and match score controls.
@@ -57,6 +62,9 @@ Current frontend organization:
 - `apps/web/src/screens/rooms` contains the rooms screen and its CSS module.
 - `apps/web/src/screens/rooms/components/create-room-form` contains the room creation form and its CSS module.
 - `apps/web/src/screens/rooms/components/rooms-leaderboard` contains the all-rooms leaderboard sidebar and its CSS module.
+- `apps/web/src/screens/room-lobby` contains the room lobby screen and its CSS module.
+- `apps/web/src/screens/room-lobby/components/room-overview` contains the central room overview and its CSS module.
+- `apps/web/src/screens/room-lobby/components/participants-sidebar` contains the room participants sidebar and its CSS module.
 - `apps/web/src/screens/workspace` contains the mocked prediction workspace and its CSS module.
 - `apps/web/src/styles.css` contains only global base styles.
 
@@ -110,6 +118,28 @@ Current rooms screen decisions:
 - Room card enter actions should use the green primary style, not a red/destructive style.
 - The right sidebar should be titled `ТОП-5 лидеров рейтинга` and show a mocked top-5 participant leaderboard across all rooms.
 - The all-rooms leaderboard ranks by total points, then exact score count as a tiebreaker.
+
+### Room Lobby Screen
+
+After clicking `Войти` on a room card, the user should land on a room lobby screen before the prediction workspace.
+
+Current room lobby decisions:
+
+- The room lobby has a topbar with:
+  - back action to the rooms screen;
+  - room name;
+  - locked-room status.
+- The central area shows common room content rather than participant predictions:
+  - `Обзор комнаты`;
+  - room status `Прогнозы открыты`;
+  - participant count;
+  - submitted prediction count;
+  - room deadline;
+  - match count.
+- The right sidebar is titled `Участники` and shows the participant list.
+- The room lobby central area should not include a separate room top list while the participant sidebar is visible.
+- Participant rows are informational for now; opening another participant's prediction is the next UI step.
+- The `Мой прогноз` action can open the existing mocked prediction workspace for now.
 
 ## Local Development Notes
 
@@ -168,10 +198,10 @@ Requires explicit user permission:
 
 Likely next UI/product work:
 
-- Replace the mocked room workspace with a real step-by-step flow.
+- Add participant prediction view navigation from the room lobby participants list.
+- Replace the mocked room workspace with a real step-by-step prediction flow.
 - Connect the mocked room creation form to real backend room creation.
 - Add a rules explanation modal/window.
-- Design room entry and lobby states.
 - Add read-only participant prediction views.
 
 Likely next backend work:

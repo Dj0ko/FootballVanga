@@ -22,6 +22,13 @@ export type Participant = {
   exactScores: number;
 };
 
+export type PredictionStatus = "saved" | "draft" | "empty";
+
+export type RoomParticipant = Participant & {
+  isCurrent?: boolean;
+  predictionStatus: PredictionStatus;
+};
+
 export type RoomSummary = {
   id: string;
   name: string;
@@ -68,11 +75,18 @@ export const participants: Participant[] = [
   { name: "Никита", points: 16, exactScores: 2 }
 ];
 
+export const roomParticipants: RoomParticipant[] = [
+  { name: "Алексей", points: 18, exactScores: 4, predictionStatus: "saved" },
+  { name: "Марта", points: 16, exactScores: 3, predictionStatus: "saved" },
+  { name: "Никита", points: 16, exactScores: 2, predictionStatus: "saved" },
+  { name: "Вы", points: 0, exactScores: 0, isCurrent: true, predictionStatus: "draft" }
+];
+
 export const firstRoom: RoomSummary = {
   id: "chm-druzya",
   name: "ЧМ у друзей",
   joinCode: "chm-druzya",
-  participantsCount: participants.length,
+  participantsCount: roomParticipants.length,
   deadlineLabel: "до 15 июня, 20:00"
 };
 

@@ -1,0 +1,93 @@
+.shell {
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.backButton,
+.roomStatus {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.backButton {
+  border: 1px solid #d9dfd4;
+  padding: 0 13px;
+  background: #ffffff;
+  color: #405047;
+}
+
+.roomTitle {
+  min-width: 0;
+}
+
+.roomTitle p {
+  margin: 0 0 4px;
+  color: #277a50;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.roomTitle h1 {
+  overflow: hidden;
+  margin-bottom: 0;
+  color: #16211b;
+  font-size: 3rem;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roomStatus {
+  border: 1px solid #d9dfd4;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #405047;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: start;
+  gap: 18px;
+}
+
+@media (max-width: 1060px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 780px) {
+  .shell {
+    padding: 16px;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .backButton,
+  .roomStatus {
+    width: 100%;
+  }
+
+  .roomTitle h1 {
+    font-size: 2.35rem;
+    white-space: normal;
+  }
+}

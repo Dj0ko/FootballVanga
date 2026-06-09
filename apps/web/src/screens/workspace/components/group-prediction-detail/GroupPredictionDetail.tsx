@@ -25,6 +25,7 @@ import styles from "./GroupPredictionDetail.module.css";
 type GroupPredictionDetailProps = {
   group: Group;
   isSaved: boolean;
+  isReadOnly: boolean;
   matches: Match[];
   matchScores: Record<string, MatchScore>;
   onBackToOverview: () => void;
@@ -87,9 +88,22 @@ function SortableTeamRow({ position, team }: SortableTeamRowProps) {
   );
 }
 
+function ReadOnlyTeamRow({ position, team }: SortableTeamRowProps) {
+  const flagUrl = teamFlagUrls[team];
+
+  return (
+    <li className={`${styles.teamRow} ${styles.teamRowReadOnly}`}>
+      <span className={styles.position}>{position}</span>
+      {flagUrl ? <img className={styles.flag} src={flagUrl} alt={`Флаг: ${team}`} draggable={false} /> : null}
+      <span className={styles.teamName}>{team}</span>
+    </li>
+  );
+}
+
 export function GroupPredictionDetail({
   group,
   isSaved,
+  isReadOnly,
   matches,
   matchScores,
   onBackToOverview,
@@ -119,6 +133,10 @@ export function GroupPredictionDetail({
   const isSavedComplete = isSaved && isComplete;
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (isReadOnly) {
+      return;
+    }
+
     if (!over || active.id === over.id) {
       return;
     }
@@ -158,15 +176,23 @@ export function GroupPredictionDetail({
             <h3 id="standings-title">Итоговые места</h3>
           </div>
 
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={teams} strategy={verticalListSortingStrategy}>
-              <ol className={styles.teamList}>
-                {teams.map((team, index) => (
-                  <SortableTeamRow key={team} position={index + 1} team={team} />
-                ))}
-              </ol>
-            </SortableContext>
-          </DndContext>
+          {isReadOnly ? (
+            <ol className={styles.teamList}>
+              {teams.map((team, index) => (
+                <ReadOnlyTeamRow key={team} position={index + 1} team={team} />
+              ))}
+            </ol>
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={teams} strategy={verticalListSortingStrategy}>
+                <ol className={styles.teamList}>
+                  {teams.map((team, index) => (
+                    <SortableTeamRow key={team} position={index + 1} team={team} />
+                  ))}
+                </ol>
+              </SortableContext>
+            </DndContext>
+          )}
         </section>
 
         <section className={styles.panel} aria-labelledby="scores-title">
@@ -188,18 +214,28 @@ export function GroupPredictionDetail({
                     <span className={styles.matchTeam}>{match.home}</span>
                     <input
                       aria-label={`${match.home}, голов`}
+                      disabled={isReadOnly}
                       min="0"
                       type="number"
                       value={score.home}
-                      onChange={(event) => onScoreChange(match.id, "home", parseScoreInput(event.target.value))}
+                      onChange={(event) => {
+                        if (!isReadOnly) {
+                          onScoreChange(match.id, "home", parseScoreInput(event.target.value));
+                        }
+                      }}
                     />
                     <span className={styles.scoreDivider}>:</span>
                     <input
                       aria-label={`${match.away}, голов`}
+                      disabled={isReadOnly}
                       min="0"
                       type="number"
                       value={score.away}
-                      onChange={(event) => onScoreChange(match.id, "away", parseScoreInput(event.target.value))}
+                      onChange={(event) => {
+                        if (!isReadOnly) {
+                          onScoreChange(match.id, "away", parseScoreInput(event.target.value));
+                        }
+                      }}
                     />
                     <span className={`${styles.matchTeam} ${styles.matchTeamAway}`}>{match.away}</span>
                   </div>
@@ -215,10 +251,12 @@ export function GroupPredictionDetail({
           <ArrowLeft size={18} aria-hidden="true" />
           Предыдущая
         </button>
-        <button type="button" className={styles.saveGroupButton} onClick={onSaveGroup}>
-          <Save size={18} aria-hidden="true" />
-          Сохранить группу
-        </button>
+        {isReadOnly ? null : (
+          <button type="button" className={styles.saveGroupButton} onClick={onSaveGroup}>
+            <Save size={18} aria-hidden="true" />
+            Сохранить группу
+          </button>
+        )}
         <button type="button" className={styles.primaryButton} onClick={onNextGroup}>
           Следующая
           <ArrowRight size={18} aria-hidden="true" />

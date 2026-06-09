@@ -5,9 +5,9 @@
 }
 
 .topbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
   margin-bottom: 18px;
 }
@@ -24,6 +24,10 @@
   margin-bottom: 0;
   font-size: 3.25rem;
   line-height: 1;
+}
+
+.deadlineCountdown {
+  justify-self: end;
 }
 
 .createButton,
@@ -126,15 +130,8 @@
 }
 
 .roomCard h3 {
-  margin-bottom: 6px;
-  font-size: 0.95rem;
-}
-
-.roomCard p {
   margin-bottom: 0;
-  color: #68766d;
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.95rem;
 }
 
 .roomMeta {
@@ -191,8 +188,7 @@
   }
 
   .topbar {
-    align-items: stretch;
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .title {
@@ -201,6 +197,10 @@
 
   .createButton {
     width: 100%;
+  }
+
+  .deadlineCountdown {
+    justify-self: stretch;
   }
 
   .heading {

@@ -6,7 +6,7 @@
 
 .topbar {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 18px;
   margin-bottom: 18px;
@@ -34,20 +34,12 @@
   min-width: 0;
 }
 
-.roomTitle p {
-  margin: 0 0 4px;
-  color: #277a50;
-  font-size: 0.8rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
 .roomTitle h1 {
   overflow: hidden;
   margin-bottom: 0;
   color: #16211b;
-  font-size: 3rem;
-  line-height: 1;
+  font-size: 1.6rem;
+  line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -57,6 +49,10 @@
   padding: 0 14px;
   background: #ffffff;
   color: #405047;
+}
+
+.deadlineCountdown {
+  justify-self: end;
 }
 
 .contentGrid {
@@ -86,8 +82,12 @@
     width: 100%;
   }
 
+  .deadlineCountdown {
+    justify-self: stretch;
+  }
+
   .roomTitle h1 {
-    font-size: 2.35rem;
+    font-size: 1.35rem;
     white-space: normal;
   }
 }

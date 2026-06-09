@@ -1,6 +1,12 @@
 import { useState } from "react";
 
-import { firstRoom, roomParticipants, type CreateRoomInput, type RoomSummary } from "./data/mockFootball";
+import {
+  firstRoom,
+  roomParticipants,
+  type CreateRoomInput,
+  type RoomParticipant,
+  type RoomSummary
+} from "./data/mockFootball";
 import { RoomLobbyScreen } from "./screens/room-lobby/RoomLobbyScreen";
 import { RoomsScreen } from "./screens/rooms/RoomsScreen";
 import { WelcomeScreen } from "./screens/welcome/WelcomeScreen";
@@ -8,10 +14,19 @@ import { WorkspaceScreen } from "./screens/workspace/WorkspaceScreen";
 
 type AppScreen = "welcome" | "rooms" | "roomLobby" | "workspace";
 
+const currentParticipant: RoomParticipant = roomParticipants.find((participant) => participant.isCurrent) ?? {
+  name: "Вы",
+  points: 0,
+  exactScores: 0,
+  isCurrent: true,
+  predictionStatus: "draft"
+};
+
 export default function App() {
   const [screen, setScreen] = useState<AppScreen>("welcome");
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
   const [activeRoom, setActiveRoom] = useState<RoomSummary>(firstRoom);
+  const [activeParticipant, setActiveParticipant] = useState<RoomParticipant>(currentParticipant);
 
   const createRoom = ({ name }: CreateRoomInput) => {
     setRooms((currentRooms) => {
@@ -21,8 +36,7 @@ export default function App() {
         id: roomId,
         name,
         joinCode: roomId,
-        participantsCount: roomParticipants.length,
-        deadlineLabel: "дедлайн настроим позже"
+        participantsCount: roomParticipants.length
       };
 
       return [nextRoom, ...currentRooms];
@@ -34,7 +48,8 @@ export default function App() {
     setScreen("roomLobby");
   };
 
-  const openWorkspace = () => {
+  const openWorkspace = (participant: RoomParticipant = currentParticipant) => {
+    setActiveParticipant(participant);
     setScreen("workspace");
   };
 
@@ -51,14 +66,16 @@ export default function App() {
       <RoomLobbyScreen
         room={activeRoom}
         onBackToRooms={() => setScreen("rooms")}
-        onOpenWorkspace={openWorkspace}
+        onOpenMyPrediction={() => openWorkspace(currentParticipant)}
+        onOpenParticipantPrediction={openWorkspace}
       />
     );
   }
 
   return (
     <WorkspaceScreen
-      deadlineLabel={activeRoom.deadlineLabel}
+      isReadOnly={!activeParticipant.isCurrent}
+      participantName={activeParticipant.name}
       roomName={activeRoom.name}
       onBackToLobby={() => setScreen("roomLobby")}
     />

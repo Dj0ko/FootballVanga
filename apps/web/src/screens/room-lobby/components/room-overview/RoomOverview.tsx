@@ -1,10 +1,9 @@
-import { CalendarClock, ClipboardList, Edit3, Trophy, Users } from "lucide-react";
+import { ClipboardList, Edit3, Trophy, Users } from "lucide-react";
 
 import type { RoomParticipant } from "../../../../data/mockFootball";
 import styles from "./RoomOverview.module.css";
 
 type RoomOverviewProps = {
-  deadlineLabel: string;
   matchCount: number;
   participants: RoomParticipant[];
   onOpenWorkspace: () => void;
@@ -13,7 +12,7 @@ type RoomOverviewProps = {
 const getSavedPredictionsCount = (participants: RoomParticipant[]) =>
   participants.filter((participant) => participant.predictionStatus === "saved").length;
 
-export function RoomOverview({ deadlineLabel, matchCount, participants, onOpenWorkspace }: RoomOverviewProps) {
+export function RoomOverview({ matchCount, participants, onOpenWorkspace }: RoomOverviewProps) {
   const savedPredictionsCount = getSavedPredictionsCount(participants);
 
   return (
@@ -41,11 +40,6 @@ export function RoomOverview({ deadlineLabel, matchCount, participants, onOpenWo
           <strong>
             {savedPredictionsCount} из {participants.length}
           </strong>
-        </article>
-        <article className={styles.statCard}>
-          <CalendarClock size={20} aria-hidden="true" />
-          <span>Дедлайн</span>
-          <strong>{deadlineLabel}</strong>
         </article>
         <article className={styles.statCard}>
           <Trophy size={20} aria-hidden="true" />

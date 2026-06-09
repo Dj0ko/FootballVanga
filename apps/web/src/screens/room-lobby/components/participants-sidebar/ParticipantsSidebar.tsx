@@ -4,6 +4,7 @@ import type { PredictionStatus, RoomParticipant } from "../../../../data/mockFoo
 import styles from "./ParticipantsSidebar.module.css";
 
 type ParticipantsSidebarProps = {
+  onOpenParticipant: (participant: RoomParticipant) => void;
   participants: RoomParticipant[];
 };
 
@@ -13,7 +14,7 @@ const statusLabel: Record<PredictionStatus, string> = {
   empty: "нет прогноза"
 };
 
-export function ParticipantsSidebar({ participants }: ParticipantsSidebarProps) {
+export function ParticipantsSidebar({ onOpenParticipant, participants }: ParticipantsSidebarProps) {
   return (
     <aside className={styles.sidebar} aria-labelledby="participants-title">
       <div className={styles.header}>
@@ -27,17 +28,24 @@ export function ParticipantsSidebar({ participants }: ParticipantsSidebarProps) 
       <ol className={styles.list}>
         {participants.map((participant) => (
           <li key={participant.name}>
-            <span className={styles.person}>
-              <strong>
-                {participant.name}
-                {participant.isCurrent ? <em>Вы</em> : null}
-              </strong>
-              <span>{statusLabel[participant.predictionStatus]}</span>
-            </span>
-            <span className={styles.score}>
-              <strong>{participant.points}</strong>
-              <span>очков</span>
-            </span>
+            <button
+              type="button"
+              className={styles.participantButton}
+              onClick={() => onOpenParticipant(participant)}
+              aria-label={`Открыть прогноз: ${participant.name}`}
+            >
+              <span className={styles.person}>
+                <strong>
+                  {participant.name}
+                  {participant.isCurrent ? <em>Вы</em> : null}
+                </strong>
+                <span>{statusLabel[participant.predictionStatus]}</span>
+              </span>
+              <span className={styles.score}>
+                <strong>{participant.points}</strong>
+                <span>очков</span>
+              </span>
+            </button>
           </li>
         ))}
       </ol>

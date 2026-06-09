@@ -139,6 +139,17 @@
   background: #ffffff;
 }
 
+.teamRowReadOnly {
+  grid-template-columns: 34px 28px minmax(0, 1fr);
+  cursor: default;
+  touch-action: auto;
+}
+
+.teamRowReadOnly:hover {
+  border-color: #e2e8df;
+  background: #f9faf7;
+}
+
 .teamRowDragging {
   position: relative;
   z-index: 2;
@@ -223,6 +234,12 @@
   min-height: 38px;
   padding: 0 6px;
   text-align: center;
+}
+
+.scoreLine input:disabled {
+  opacity: 1;
+  background: #f9faf7;
+  color: #16211b;
 }
 
 .scoreDivider {

@@ -1,6 +1,12 @@
 import { ArrowLeft, Lock } from "lucide-react";
 
-import { groupStageMatchCount, roomParticipants, type RoomSummary } from "../../data/mockFootball";
+import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineCountdown";
+import {
+  groupStageMatchCount,
+  roomParticipants,
+  type RoomParticipant,
+  type RoomSummary
+} from "../../data/mockFootball";
 import { ParticipantsSidebar } from "./components/participants-sidebar/ParticipantsSidebar";
 import { RoomOverview } from "./components/room-overview/RoomOverview";
 import styles from "./RoomLobbyScreen.module.css";
@@ -8,10 +14,16 @@ import styles from "./RoomLobbyScreen.module.css";
 type RoomLobbyScreenProps = {
   room: RoomSummary;
   onBackToRooms: () => void;
-  onOpenWorkspace: () => void;
+  onOpenMyPrediction: () => void;
+  onOpenParticipantPrediction: (participant: RoomParticipant) => void;
 };
 
-export function RoomLobbyScreen({ room, onBackToRooms, onOpenWorkspace }: RoomLobbyScreenProps) {
+export function RoomLobbyScreen({
+  room,
+  onBackToRooms,
+  onOpenMyPrediction,
+  onOpenParticipantPrediction
+}: RoomLobbyScreenProps) {
   return (
     <main className={styles.shell}>
       <header className={styles.topbar}>
@@ -21,7 +33,6 @@ export function RoomLobbyScreen({ room, onBackToRooms, onOpenWorkspace }: RoomLo
         </button>
 
         <div className={styles.roomTitle}>
-          <p>Комната</p>
           <h1>{room.name}</h1>
         </div>
 
@@ -29,16 +40,20 @@ export function RoomLobbyScreen({ room, onBackToRooms, onOpenWorkspace }: RoomLo
           <Lock size={16} aria-hidden="true" />
           закрытая
         </div>
+
+        <DeadlineCountdown className={styles.deadlineCountdown} />
       </header>
 
       <div className={styles.contentGrid}>
         <RoomOverview
-          deadlineLabel={room.deadlineLabel}
           matchCount={groupStageMatchCount}
           participants={roomParticipants}
-          onOpenWorkspace={onOpenWorkspace}
+          onOpenWorkspace={onOpenMyPrediction}
         />
-        <ParticipantsSidebar participants={roomParticipants} />
+        <ParticipantsSidebar
+          participants={roomParticipants}
+          onOpenParticipant={onOpenParticipantPrediction}
+        />
       </div>
     </main>
   );

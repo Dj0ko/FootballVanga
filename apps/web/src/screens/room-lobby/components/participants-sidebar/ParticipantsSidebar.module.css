@@ -36,8 +36,9 @@
   list-style: none;
 }
 
-.list li {
+.participantButton {
   display: grid;
+  width: 100%;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
@@ -45,6 +46,12 @@
   border-radius: 8px;
   padding: 10px;
   background: #ffffff;
+  text-align: left;
+}
+
+.participantButton:hover {
+  border-color: #cddbc8;
+  background: #fbfcfa;
 }
 
 .person,

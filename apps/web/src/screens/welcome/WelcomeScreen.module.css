@@ -101,6 +101,13 @@
   padding: 24px 0;
 }
 
+.deadlineCountdown {
+  position: absolute;
+  z-index: 2;
+  top: 40px;
+  right: 40px;
+}
+
 .eyebrow {
   margin: 0 0 4px;
   color: #bcebc4;
@@ -167,6 +174,12 @@
 
   .content {
     padding-top: 76px;
+  }
+
+  .deadlineCountdown {
+    top: 28px;
+    right: 18px;
+    left: 18px;
   }
 
   .title {

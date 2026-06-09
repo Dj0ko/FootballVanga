@@ -1,25 +1,50 @@
-import { ArrowLeft, Lock, Save } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import { useState } from "react";
 
-import { groups, initialScores, matches, type MatchScore } from "../../data/mockFootball";
+import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineCountdown";
+import {
+  createEmptyPredictionSnapshot,
+  groups,
+  matches,
+  participantPredictionSnapshots,
+  type MatchScore
+} from "../../data/mockFootball";
 import { GroupPredictionBoard } from "./components/group-prediction-board/GroupPredictionBoard";
 import { GroupPredictionDetail } from "./components/group-prediction-detail/GroupPredictionDetail";
 import styles from "./WorkspaceScreen.module.css";
 
 type WorkspaceScreenProps = {
-  deadlineLabel: string;
+  isReadOnly: boolean;
   onBackToLobby: () => void;
+  participantName: string;
   roomName: string;
 };
 
-const createInitialGroupOrders = () =>
-  Object.fromEntries(groups.map((group) => [group.id, [...group.teams]])) as Record<string, string[]>;
+const cloneGroupOrders = (groupOrders: Record<string, string[]>) =>
+  Object.fromEntries(Object.entries(groupOrders).map(([groupId, teams]) => [groupId, [...teams]])) as Record<
+    string,
+    string[]
+  >;
 
-export function WorkspaceScreen({ deadlineLabel, onBackToLobby, roomName }: WorkspaceScreenProps) {
+const cloneMatchScores = (matchScores: Record<string, MatchScore>) =>
+  Object.fromEntries(Object.entries(matchScores).map(([matchId, score]) => [matchId, { ...score }])) as Record<
+    string,
+    MatchScore
+  >;
+
+export function WorkspaceScreen({
+  isReadOnly,
+  onBackToLobby,
+  participantName,
+  roomName
+}: WorkspaceScreenProps) {
+  const predictionSnapshot = participantPredictionSnapshots[participantName] ?? createEmptyPredictionSnapshot();
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
-  const [groupOrders, setGroupOrders] = useState(createInitialGroupOrders);
-  const [matchScores, setMatchScores] = useState<Record<string, MatchScore>>(initialScores);
-  const [savedGroupIds, setSavedGroupIds] = useState<string[]>([]);
+  const [groupOrders, setGroupOrders] = useState(() => cloneGroupOrders(predictionSnapshot.groupOrders));
+  const [matchScores, setMatchScores] = useState<Record<string, MatchScore>>(() =>
+    cloneMatchScores(predictionSnapshot.matchScores)
+  );
+  const [savedGroupIds, setSavedGroupIds] = useState<string[]>(() => [...predictionSnapshot.savedGroupIds]);
 
   const activeGroup = groups.find((group) => group.id === activeGroupId) ?? null;
   const activeGroupIndex = activeGroup ? groups.findIndex((group) => group.id === activeGroup.id) : -1;
@@ -32,6 +57,10 @@ export function WorkspaceScreen({ deadlineLabel, onBackToLobby, roomName }: Work
   const savedGroupsCount = savedGroupIds.length;
 
   const reorderGroup = (groupId: string, teams: string[]) => {
+    if (isReadOnly) {
+      return;
+    }
+
     setGroupOrders((currentOrders) => ({
       ...currentOrders,
       [groupId]: teams
@@ -40,6 +69,10 @@ export function WorkspaceScreen({ deadlineLabel, onBackToLobby, roomName }: Work
   };
 
   const updateScore = (matchId: string, side: keyof MatchScore, value: number | "") => {
+    if (isReadOnly) {
+      return;
+    }
+
     const [groupId] = matchId.split("-");
 
     setMatchScores((currentScores) => ({
@@ -56,7 +89,7 @@ export function WorkspaceScreen({ deadlineLabel, onBackToLobby, roomName }: Work
   };
 
   const saveActiveGroup = () => {
-    if (!activeGroup) {
+    if (!activeGroup || isReadOnly) {
       return;
     }
 
@@ -83,25 +116,23 @@ export function WorkspaceScreen({ deadlineLabel, onBackToLobby, roomName }: Work
         </button>
 
         <div className={styles.titleBlock}>
-          <p className={styles.eyebrow}>{roomName}</p>
-          <h1 className={styles.title}>Мой прогноз</h1>
+          <h1 className={styles.title}>
+            <span className={styles.titleText}>{roomName}</span>
+          </h1>
         </div>
 
-        <div className={styles.deadlinePill}>
-          <Lock size={16} aria-hidden="true" />
-          {deadlineLabel}
-        </div>
+        <DeadlineCountdown className={styles.deadlineCountdown} />
       </header>
 
       <section className={styles.predictionArea} aria-label="Доска прогноза">
-        <div className={styles.statusStrip}>
+        <div className={`${styles.statusStrip} ${isReadOnly ? styles.statusStripReadOnly : ""}`}>
           <div>
             <span>Участник</span>
-            <strong>Вы</strong>
+            <strong>{participantName}</strong>
           </div>
           <div>
             <span>Статус</span>
-            <strong>Черновик открыт</strong>
+            <strong>{isReadOnly ? "Только просмотр" : "Черновик открыт"}</strong>
           </div>
           <div>
             <span>Сохранено</span>
@@ -111,10 +142,12 @@ export function WorkspaceScreen({ deadlineLabel, onBackToLobby, roomName }: Work
             <span>Счета</span>
             <strong>{filledScoresCount} из {matches.length}</strong>
           </div>
-          <button type="button" className={styles.saveButton}>
-            <Save size={18} aria-hidden="true" />
-            Сохранить прогноз
-          </button>
+          {isReadOnly ? null : (
+            <button type="button" className={styles.saveButton}>
+              <Save size={18} aria-hidden="true" />
+              Сохранить прогноз
+            </button>
+          )}
         </div>
 
         {activeGroup ? (
@@ -123,6 +156,7 @@ export function WorkspaceScreen({ deadlineLabel, onBackToLobby, roomName }: Work
             isSaved={savedGroupIds.includes(activeGroup.id)}
             matches={activeGroupMatches}
             matchScores={matchScores}
+            isReadOnly={isReadOnly}
             teams={groupOrders[activeGroup.id] ?? activeGroup.teams}
             onBackToOverview={() => setActiveGroupId(null)}
             onNextGroup={() => openAdjacentGroup(1)}

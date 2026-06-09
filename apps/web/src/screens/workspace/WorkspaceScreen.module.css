@@ -12,36 +12,13 @@
   margin-bottom: 18px;
 }
 
-.titleBlock {
-  min-width: 0;
-}
-
-.eyebrow {
-  overflow: hidden;
-  margin: 0 0 4px;
-  color: #277a50;
-  font-size: 0.8rem;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.title {
-  margin-bottom: 0;
-  font-size: 3.25rem;
-  line-height: 1;
-}
-
 .backButton,
-.deadlinePill,
 .saveButton {
   display: flex;
   align-items: center;
 }
 
-.backButton,
-.deadlinePill {
+.backButton {
   min-height: 42px;
   gap: 8px;
   border: 1px solid #d9dfd4;
@@ -50,6 +27,29 @@
   background: #ffffff;
   color: #405047;
   font-weight: 700;
+}
+
+.deadlineCountdown {
+  justify-self: end;
+}
+
+.titleBlock {
+  min-width: 0;
+}
+
+.title {
+  min-width: 0;
+  margin-bottom: 0;
+  color: #16211b;
+  font-size: 1.6rem;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.titleText {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
 }
 
 .predictionArea {
@@ -78,6 +78,10 @@
   padding: 12px;
   margin-bottom: 16px;
   background: rgba(255, 255, 255, 0.92);
+}
+
+.statusStripReadOnly {
+  grid-template-columns: repeat(4, minmax(120px, auto));
 }
 
 .statusStrip div {
@@ -117,18 +121,17 @@
     grid-template-columns: 1fr;
   }
 
-  .title {
-    font-size: 2.5rem;
-  }
-
-  .eyebrow {
-    white-space: normal;
-  }
-
   .backButton,
-  .deadlinePill,
   .saveButton {
     width: 100%;
+  }
+
+  .deadlineCountdown {
+    justify-self: stretch;
+  }
+
+  .title {
+    font-size: 1.35rem;
   }
 
   .statusStrip {

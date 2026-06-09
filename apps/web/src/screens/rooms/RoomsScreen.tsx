@@ -1,6 +1,7 @@
 import { ArrowRight, Lock, LogIn, Plus, ShieldCheck, Users } from "lucide-react";
 import { useState } from "react";
 
+import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineCountdown";
 import { globalLeaders, type CreateRoomInput, type RoomSummary } from "../../data/mockFootball";
 import { CreateRoomForm } from "./components/create-room-form/CreateRoomForm";
 import { RoomsLeaderboard } from "./components/rooms-leaderboard/RoomsLeaderboard";
@@ -50,6 +51,7 @@ export function RoomsScreen({ rooms, onCreateRoom, onOpenRoom }: RoomsScreenProp
           <p className={styles.eyebrow}>Прогнозы группового этапа</p>
           <h1 className={styles.title}>Комнаты</h1>
         </div>
+        <DeadlineCountdown className={styles.deadlineCountdown} />
         <button type="button" className={styles.createButton} onClick={openCreateRoom} disabled={isCreatingRoom}>
           <Plus size={18} aria-hidden="true" />
           Создать комнату
@@ -74,7 +76,6 @@ export function RoomsScreen({ rooms, onCreateRoom, onOpenRoom }: RoomsScreenProp
                 <article className={styles.roomCard} key={room.id}>
                   <div>
                     <h3>{room.name}</h3>
-                    <p>{room.deadlineLabel}</p>
                   </div>
                   <div className={styles.roomMeta}>
                     <span>

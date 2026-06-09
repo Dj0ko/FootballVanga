@@ -12,7 +12,8 @@ The agreed Version 1 product scope:
 - Guest participants with unique display names inside each room.
 - A room lobby that shows participant names after room password entry.
 - Participants can view other predictions, but can edit only their own prediction.
-- Predictions remain editable until a single room deadline before the tournament starts.
+- Predictions remain editable until a single deadline before the tournament starts.
+- The current UI derives that deadline from the first group-stage match kickoff.
 - Version 1 covers only the group stage.
 - Rules explanation should live in a separate UI window later, not on the welcome screen.
 
@@ -31,7 +32,9 @@ The frontend currently has:
 - Welcome copy:
   - `FootballVanga`
   - `Закрытая игра прогнозов для футбольных компаний.`
-  - `Входи в комнату, оставляй прогноз до старта турнира и следи, как меняется таблица после каждого матча.`
+  - `Входи в комнату, оставляй прогноз и следи, как меняется таблица после каждого матча.`
+- A shared deadline countdown is shown in the top/header area of the welcome, rooms, room lobby, and prediction workspace screens.
+- The current mocked prediction deadline is derived from the earliest World Cup 2026 group-stage match kickoff in `matches`.
 - A `Продолжить` button that opens the mocked rooms screen.
 - A mocked rooms screen shown after welcome.
 - A room zero state when there are no rooms:
@@ -46,13 +49,15 @@ The frontend currently has:
 - A mocked room lobby screen with:
   - room overview in the central area;
   - room participant sidebar on the right;
-  - room stats for participant count, submitted predictions, deadline, and match count;
+  - room stats for participant count, submitted predictions, and match count;
   - `Мой прогноз` action that opens the mocked group prediction screen.
+- Participant rows in the room lobby open that participant's mocked prediction screen.
 - A mocked group prediction screen with all 12 World Cup 2026 groups in a desktop 4-column grid.
 - Overview group cards open a focused group detail screen.
 - Drag-and-drop team ordering inside the active group detail screen using `@dnd-kit`.
 - Match score inputs for the six matches of the active group.
 - A mocked `Сохранить группу` action on the group detail screen.
+- Other participants' prediction detail screens are read-only: no drag-and-drop, score editing, or save action.
 - Overview cards show whether each group is still a draft or saved.
 - Overview cards color the `Счета x/6` counter by completion: red for 0-2, yellow for 3-5, green for 6.
 - Team rows show SVG flags imported from the MIT-licensed `flag-icons` package.
@@ -124,7 +129,7 @@ Current rooms screen decisions:
 - Password validation should stay lightweight for Version 1: minimum 8 characters, no special-character/case/number rules.
 - The password field can be shown or hidden to reduce entry mistakes.
 - The mocked form adds the new room to the local room list for now.
-- Existing rooms are shown as compact room cards with participant count, locked-room status, deadline label, and enter action.
+- Existing rooms are shown as compact room cards with participant count, locked-room status, and enter action.
 - Room card enter actions should use the green primary style, not a red/destructive style.
 - The right sidebar should be titled `ТОП-5 лидеров рейтинга` and show a mocked top-5 participant leaderboard across all rooms.
 - The all-rooms leaderboard ranks by total points, then exact score count as a tiebreaker.
@@ -137,18 +142,20 @@ Current room lobby decisions:
 
 - The room lobby has a topbar with:
   - back action to the rooms screen;
-  - room name;
+  - room name as the only title text;
   - locked-room status.
 - The central area shows common room content rather than participant predictions:
   - `Обзор комнаты`;
   - room status `Прогнозы открыты`;
   - participant count;
   - submitted prediction count;
-  - room deadline;
   - match count.
+- The room lobby topbar shows the shared deadline countdown.
 - The right sidebar is titled `Участники` and shows the participant list.
 - The room lobby central area should not include a separate room top list while the participant sidebar is visible.
-- Participant rows are informational for now; opening another participant's prediction is the next UI step.
+- Participant rows open that participant's prediction view.
+- The current participant row opens the editable `Мой прогноз` workspace.
+- Other participant rows open the same prediction workspace in read-only mode.
 - The `Мой прогноз` action opens the mocked group prediction screen for now.
 
 ### My Prediction Screen
@@ -172,6 +179,9 @@ Current prediction screen decisions:
 - Save actions use the warm yellow accent, not the red/destructive color.
 - Team rows show a flag next to each team name.
 - Team ordering and match score inputs are stored in local React state for now.
+- The workspace can show either the current participant's editable prediction or another participant's read-only prediction.
+- The prediction workspace topbar title is the room name, with the shared deadline countdown on the right.
+- The prediction workspace status strip always shows the active participant name for both editable and read-only views.
 - Mock group-stage matches now use the documented World Cup 2026 fixture order, dates, venues, and kickoff times.
 - Kickoff times are stored as UTC ISO timestamps and displayed with `Intl.DateTimeFormat` in the browser's current time zone, without repeating a GMT offset in every match row.
 - Before production seed/migrations, fixture data should still be re-verified against FIFA's official schedule.
@@ -214,6 +224,20 @@ Current local settings:
 
 Production Nginx may still proxy to `127.0.0.1:4100`, which is appropriate on the server.
 
+## Notes For Next Session
+
+Recent UI work completed on 2026-06-09:
+
+- Participant rows in the room lobby now open that participant's mocked prediction workspace.
+- The current participant opens an editable workspace; other participants open the same workspace in read-only mode.
+- Read-only group details intentionally remove drag-and-drop behavior, score editing, and save actions.
+- `apps/web/src/components/deadline-countdown/DeadlineCountdown.tsx` owns the shared one-line deadline timer.
+- The mocked deadline is derived from the earliest `matches[].startsAtIso` value in `apps/web/src/data/mockFootball.ts`.
+- Local room deadline labels were removed from room cards, room overview stats, and workspace props.
+- Room lobby and workspace topbars use the room name as the only title text.
+- The active participant name belongs in the workspace status strip, not in the topbar title.
+- The shared countdown appears in the welcome, rooms, room lobby, and workspace header/topbar areas.
+
 ## Verification Policy
 
 Allowed without explicit app launch permission:
@@ -233,12 +257,10 @@ Requires explicit user permission:
 
 Likely next UI/product work:
 
-- Add participant prediction view navigation from the room lobby participants list.
 - Connect the mocked group save action to prediction persistence.
 - Verify World Cup 2026 group-stage fixture data against FIFA before production seed/migrations.
 - Connect the mocked room creation form to real backend room creation.
 - Add a rules explanation modal/window.
-- Add read-only participant prediction views.
 
 Likely next backend work:
 

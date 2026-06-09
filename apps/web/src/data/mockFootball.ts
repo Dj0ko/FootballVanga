@@ -32,12 +32,17 @@ export type RoomParticipant = Participant & {
   predictionStatus: PredictionStatus;
 };
 
+export type PredictionSnapshot = {
+  groupOrders: Record<string, string[]>;
+  matchScores: Record<string, MatchScore>;
+  savedGroupIds: string[];
+};
+
 export type RoomSummary = {
   id: string;
   name: string;
   joinCode: string;
   participantsCount: number;
-  deadlineLabel: string;
 };
 
 export type CreateRoomInput = {
@@ -776,6 +781,15 @@ export const matches: Match[] = matchFixtures.map((match) => ({
   startsAtIso: matchStartsAtIsoById[match.id] ?? `${match.date}T00:00:00Z`
 }));
 
+export const predictionDeadlineStartsAtIso =
+  matches.reduce<string | null>((earliestStartsAtIso, match) => {
+    if (!earliestStartsAtIso || Date.parse(match.startsAtIso) < Date.parse(earliestStartsAtIso)) {
+      return match.startsAtIso;
+    }
+
+    return earliestStartsAtIso;
+  }, null) ?? "2026-06-11T19:00:00Z";
+
 export const groupStageMatchCount = matches.length;
 
 export const participants: Participant[] = [
@@ -795,8 +809,7 @@ export const firstRoom: RoomSummary = {
   id: "chm-druzya",
   name: "ЧМ у друзей",
   joinCode: "chm-druzya",
-  participantsCount: roomParticipants.length,
-  deadlineLabel: "до 15 июня, 20:00"
+  participantsCount: roomParticipants.length
 };
 
 export const globalLeaders: GlobalLeader[] = [
@@ -814,3 +827,42 @@ export const initialStandings = Object.fromEntries(
 export const initialScores = Object.fromEntries(
   matches.map((match) => [match.id, { home: "", away: "" }])
 ) as Record<string, MatchScore>;
+
+export const createEmptyPredictionSnapshot = (): PredictionSnapshot => ({
+  groupOrders: Object.fromEntries(
+    groups.map((group) => [group.id, [...group.teams]])
+  ) as Record<string, string[]>,
+  matchScores: Object.fromEntries(matches.map((match) => [match.id, { home: "", away: "" }])) as Record<
+    string,
+    MatchScore
+  >,
+  savedGroupIds: []
+});
+
+const createMockPredictionSnapshot = (seed: number): PredictionSnapshot => ({
+  groupOrders: Object.fromEntries(
+    groups.map((group, groupIndex) => {
+      const rotation = (seed + groupIndex) % group.teams.length;
+      const teams = [...group.teams.slice(rotation), ...group.teams.slice(0, rotation)];
+
+      return [group.id, teams];
+    })
+  ) as Record<string, string[]>,
+  matchScores: Object.fromEntries(
+    matches.map((match, matchIndex) => [
+      match.id,
+      {
+        home: (matchIndex + seed) % 4,
+        away: (matchIndex * 2 + seed) % 3
+      }
+    ])
+  ) as Record<string, MatchScore>,
+  savedGroupIds: groups.map((group) => group.id)
+});
+
+export const participantPredictionSnapshots: Record<string, PredictionSnapshot> = {
+  Алексей: createMockPredictionSnapshot(1),
+  Марта: createMockPredictionSnapshot(2),
+  Никита: createMockPredictionSnapshot(3),
+  Вы: createEmptyPredictionSnapshot()
+};

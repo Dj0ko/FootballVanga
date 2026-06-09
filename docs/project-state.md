@@ -55,6 +55,8 @@ The frontend currently has:
 
 The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts`. It does not call the backend yet.
 
+World Cup 2026 groups and group-stage fixtures for future seed data are documented in `docs/world-cup-2026-data.md`.
+
 Current frontend organization:
 
 - `apps/web/src/App.tsx` coordinates the current screen state.
@@ -200,6 +202,7 @@ Likely next UI/product work:
 
 - Add participant prediction view navigation from the room lobby participants list.
 - Replace the mocked room workspace with a real step-by-step prediction flow.
+- Replace placeholder tournament teams/matches with the World Cup 2026 group-stage data from `docs/world-cup-2026-data.md`.
 - Connect the mocked room creation form to real backend room creation.
 - Add a rules explanation modal/window.
 - Add read-only participant prediction views.

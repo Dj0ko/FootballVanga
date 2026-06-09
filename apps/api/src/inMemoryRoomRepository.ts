@@ -16,27 +16,69 @@ type StoredRoom = {
   status: RoomStatus;
 };
 
-const toRoomSummary = (room: StoredRoom): RoomSummary => ({
+export type StoredParticipant = {
+  codeHash: string;
+  createdOrder: number;
+  displayName: string;
+  exactScoreHits: number;
+  id: string;
+  roomId: string;
+  totalScore: number;
+};
+
+export type StoredParticipantSession = {
+  expiresAtIso: string;
+  lastUsedAtIso: string;
+  participantId: string;
+  revokedAtIso: string | null;
+  tokenHash: string;
+};
+
+export type InMemoryFootballStore = {
+  deadlineIso: string;
+  nextParticipantOrder: number;
+  nextRoomOrder: number;
+  participantSessions: Map<string, StoredParticipantSession>;
+  participants: Map<string, StoredParticipant>;
+  rooms: Map<string, StoredRoom>;
+};
+
+export const createInMemoryFootballStore = (
+  options: {
+    deadlineIso?: string;
+  } = {}
+): InMemoryFootballStore => ({
+  deadlineIso: options.deadlineIso ?? DEFAULT_DEADLINE_ISO,
+  nextParticipantOrder: 0,
+  nextRoomOrder: 0,
+  participantSessions: new Map(),
+  participants: new Map(),
+  rooms: new Map()
+});
+
+const countParticipants = (store: InMemoryFootballStore, roomId: string) =>
+  Array.from(store.participants.values()).filter((participant) => participant.roomId === roomId).length;
+
+const toRoomSummary = (store: InMemoryFootballStore, room: StoredRoom): RoomSummary => ({
   deadlineIso: room.deadlineIso,
   id: room.id,
   name: room.name,
-  participantCount: room.participantCount,
+  participantCount: countParticipants(store, room.id),
   status: room.status
 });
 
 export const createInMemoryRoomRepository = (
   options: {
     deadlineIso?: string;
+    store?: InMemoryFootballStore;
   } = {}
 ): RoomRepository => {
-  const deadlineIso = options.deadlineIso ?? DEFAULT_DEADLINE_ISO;
-  const rooms = new Map<string, StoredRoom>();
-  let nextCreatedOrder = 0;
+  const store = options.store ?? createInMemoryFootballStore({ deadlineIso: options.deadlineIso });
 
   const createRoom: RoomRepository["createRoom"] = async ({ name, passwordHash }) => {
     const room: StoredRoom = {
-      createdOrder: nextCreatedOrder,
-      deadlineIso,
+      createdOrder: store.nextRoomOrder,
+      deadlineIso: store.deadlineIso,
       id: randomUUID(),
       name,
       participantCount: 0,
@@ -44,14 +86,14 @@ export const createInMemoryRoomRepository = (
       status: "open"
     };
 
-    nextCreatedOrder += 1;
-    rooms.set(room.id, room);
+    store.nextRoomOrder += 1;
+    store.rooms.set(room.id, room);
 
-    return toRoomSummary(room);
+    return toRoomSummary(store, room);
   };
 
   const getRoomById: RoomRepository["getRoomById"] = async (roomId) => {
-    const room = rooms.get(roomId);
+    const room = store.rooms.get(roomId);
 
     if (!room) {
       return null;
@@ -64,9 +106,9 @@ export const createInMemoryRoomRepository = (
   };
 
   const listRooms: RoomRepository["listRooms"] = async () =>
-    Array.from(rooms.values())
+    Array.from(store.rooms.values())
       .sort((leftRoom, rightRoom) => rightRoom.createdOrder - leftRoom.createdOrder)
-      .map(toRoomSummary);
+      .map((room) => toRoomSummary(store, room));
 
   return {
     createRoom,

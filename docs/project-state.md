@@ -56,8 +56,9 @@ The frontend currently has:
   - backend room password check before entering room contents;
   - participant display name entry;
   - participant code entry with at least 4 characters;
-  - existing participant name protection by participant code;
-  - new participant creation when the display name is not taken.
+  - backend existing participant name protection by participant code;
+  - backend new participant creation when the display name is not taken;
+  - backend participant session creation after successful participant entry.
 - A mocked room lobby screen with:
   - room overview in the central area;
   - room participant sidebar on the right;
@@ -76,9 +77,9 @@ The frontend currently has:
 - A hidden mocked admin result-entry screen is available at `/admin/results`.
 - The admin screen checks backend admin session status, logs in through `POST /api/admin/login`, and writes scores through `PUT /api/admin/matches/:matchId/result`.
 
-The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts` for tournament display, participant identity, predictions, and leaderboards.
+The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts` for tournament display, predictions, and leaderboards.
 
-The rooms list, room creation, room password entry, and hidden `/admin/results` screen call the backend scaffold.
+The rooms list, room creation, room password entry, participant entry, participant lists after entry, and hidden `/admin/results` screen call the backend scaffold.
 
 The backend currently has:
 
@@ -87,6 +88,8 @@ The backend currently has:
 - `GET /api/rooms`
 - `POST /api/rooms`
 - `POST /api/rooms/:roomId/enter`
+- `POST /api/rooms/:roomId/participants/enter`
+- `GET /api/rooms/:roomId/participants`
 - `GET /api/match-history`
 - `GET /api/admin/session`
 - `POST /api/admin/login`
@@ -96,9 +99,11 @@ The backend currently has:
 
 Backend result storage is temporary in-memory scaffold state until result endpoints are wired to PostgreSQL.
 
-Room storage uses PostgreSQL when `DATABASE_URL` is configured and migrations have been applied. Without `DATABASE_URL`, the API uses local in-memory room storage so room creation and room password entry can be checked without a local database; in-memory rooms reset after the API restarts.
+Room and participant storage use PostgreSQL when `DATABASE_URL` is configured and migrations have been applied. Without `DATABASE_URL`, the API uses local in-memory room and participant storage so room creation, room password entry, participant entry, and participant session checks can be checked without a local database; in-memory rooms, participants, and sessions reset after the API restarts.
 
 Room passwords are hashed with the shared scrypt password-hash helper before storage.
+
+Participant codes are hashed with the shared scrypt password-hash helper before storage. Participant session tokens are returned to the client after successful participant entry and stored server-side only as deterministic SHA-256 hashes.
 
 The backend now also has PostgreSQL migration scaffolding:
 
@@ -114,7 +119,7 @@ The repository now has an automated API test suite:
 
 - `npm test` runs API tests through the root workspace script.
 - API tests type-check test files with `apps/api/tsconfig.test.json`.
-- The current tests cover shared password hashing, room endpoint behavior through Fastify `inject`, and World Cup 2026 seed migration invariants.
+- The current tests cover shared password hashing, room endpoint behavior, participant entry/session behavior through Fastify `inject`, and World Cup 2026 seed migration invariants.
 
 World Cup 2026 group data is now used by the mocked prediction screen and by the backend seed migration. Group-stage fixtures are documented in `docs/world-cup-2026-data.md`.
 
@@ -127,7 +132,7 @@ Current frontend organization:
 - `apps/web/src/screens/rooms/components/create-room-form` contains the room creation form and its CSS module.
 - `apps/web/src/screens/rooms/components/match-results-history` contains the tournament match history/results view and its CSS module.
 - `apps/web/src/screens/rooms/components/rooms-leaderboard` contains the all-rooms leaderboard sidebar and its CSS module.
-- `apps/web/src/screens/room-entry` contains backend room password entry and mocked participant entry flow.
+- `apps/web/src/screens/room-entry` contains backend room password entry and backend participant entry flow.
 - `apps/web/src/screens/room-lobby` contains the room lobby screen and its CSS module.
 - `apps/web/src/screens/room-lobby/components/room-overview` contains the central room overview and its CSS module.
 - `apps/web/src/screens/room-lobby/components/participants-sidebar` contains the room participants sidebar and its CSS module.
@@ -214,11 +219,12 @@ Current room entry decisions:
 - Room contents stay hidden until the room password is accepted.
 - After room password acceptance, the user enters a participant display name and participant code.
 - Participant display names are unique inside a room.
-- If the display name is already taken, the participant code must match that existing participant.
-- If the display name is free, the UI creates a new mocked participant for that room.
+- If the display name is already taken, the backend requires the matching participant code.
+- If the display name is free, the backend creates a new participant for that room.
 - Participant codes use the same lightweight Version 1 rule as room passwords: minimum 4 characters.
 - `RoomSummary` remains public room data and does not include room password hashes.
-- Real room passwords are checked by the backend; participant codes are still mocked until the participant-session step.
+- Real room passwords and participant codes are checked by the backend.
+- Successful participant entry returns a participant session token. The token is currently kept in React state and will be used for prediction ownership checks in the prediction persistence step.
 
 ### Room Lobby Screen
 
@@ -277,7 +283,7 @@ Current prediction screen decisions:
 
 Do not start the local app unless the user explicitly asks.
 
-For prediction-workspace UI-only work, backend is not required. Room list, room creation, and room password entry require the API. Without `DATABASE_URL`, the API uses in-memory room storage; set `DATABASE_URL` and run migrations only when PostgreSQL-backed storage is needed.
+For prediction-workspace UI-only work, backend is not required. Room list, room creation, room password entry, participant entry, and participant lists require the API. Without `DATABASE_URL`, the API uses in-memory room and participant storage; set `DATABASE_URL` and run migrations only when PostgreSQL-backed storage is needed.
 
 Docker/Compose is not part of the local development path. The local backend should be usable without Docker and without a local PostgreSQL instance by leaving `DATABASE_URL` empty.
 
@@ -335,10 +341,10 @@ Recent UI work completed on 2026-06-09:
 - Room lobby and workspace topbars use the room name as the only title text.
 - The active participant name belongs in the workspace status strip, not in the topbar title.
 - The shared countdown appears in the welcome, rooms, room lobby, and workspace header/topbar areas.
-- Room entry is partly backend-backed: public room summaries are separate from backend room password checks and mocked participant code checks.
+- Room entry is backend-backed: public room summaries are separate from backend room password checks, participant code checks, and participant session creation.
 - `App.tsx` now separates the current participant session from the participant whose prediction is being viewed.
-- New participants are created through the mocked room entry flow only after the room password is accepted.
-- Existing participant names require the matching 4+ character participant code; entering someone else's name without that code must not grant edit access.
+- New participants are created through the backend room entry flow only after the room password is accepted.
+- Existing participant names require the matching 4+ character participant code on the backend; entering someone else's name without that code must not grant edit access.
 
 Recent backend groundwork completed on 2026-06-09:
 
@@ -347,10 +353,13 @@ Recent backend groundwork completed on 2026-06-09:
 - The seed migration covers 12 groups, 48 teams, and 72 group-stage matches.
 - Real room creation, public room list, and room password entry were wired to API endpoints with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 - Docker/Compose local database scaffolding was intentionally removed; the local no-database path follows the same in-memory fallback pattern as `DjokoNards`.
-- API tests were added for password hashing, room endpoints, and World Cup seed invariants.
-- Participant display-name entry, participant code hashes, and participant session ownership remain the next backend roadmap step.
+- Participant display-name entry, participant code hashes, and participant session ownership were wired to API endpoints with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
+- API tests were added for password hashing, room endpoints, participant entry/session endpoints, and World Cup seed invariants.
+- Prediction persistence for group standings and match scores with backend deadline enforcement remains the next backend roadmap step.
 
 ## Verification Policy
+
+After code changes, Codex should assess whether the current automated tests cover the changed behavior. If the change needs additional tests, or if a meaningful coverage gap remains after the available checks, Codex should tell the user explicitly and name the missing test coverage.
 
 Allowed without explicit app launch permission:
 
@@ -373,7 +382,7 @@ The UI is considered complete enough for the current mock stage. The next work s
 1. PostgreSQL schema and migrations. Completed as initial migration scaffold; future schema changes should add new migration files.
 2. Seed data for World Cup 2026 groups, teams, and group-stage matches. Completed as `0002_seed_world_cup_2026_group_stage.sql`.
 3. Real room creation, public room list, room entry, and room password hashes. Completed as API endpoints with frontend wiring, in-memory local storage, and PostgreSQL storage when `DATABASE_URL` is set.
-4. Participant display-name entry, participant code hashes, and participant session ownership.
+4. Participant display-name entry, participant code hashes, and participant session ownership. Completed as API endpoints with frontend wiring, in-memory local storage, and PostgreSQL storage when `DATABASE_URL` is set.
 5. Prediction persistence for group standings and match scores, with backend deadline enforcement.
 6. PostgreSQL-backed match results from the hidden admin result-entry screen, replacing current in-memory result storage.
 7. Scoring recalculation and room leaderboard.

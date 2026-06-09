@@ -1,4 +1,6 @@
-import type { CreateRoomInput, RoomSummary } from "../data/mockFootball";
+import type { ParticipantSession } from "@footballvanga/shared";
+
+import type { CreateRoomInput, RoomParticipant, RoomSummary } from "../data/mockFootball";
 
 type ApiRoomSummary = {
   deadlineIso: string;
@@ -21,6 +23,28 @@ type EnterRoomResponse = {
   roomId: string;
 };
 
+type ApiParticipantSummary = {
+  displayName: string;
+  exactScoreHits: number;
+  id: string;
+  totalScore: number;
+};
+
+type EnterParticipantInput = {
+  code: string;
+  displayName: string;
+  roomPassword: string;
+};
+
+type ParticipantsResponse = {
+  participant: ApiParticipantSummary;
+  participants: ApiParticipantSummary[];
+};
+
+type EnterParticipantResponse = ParticipantsResponse & {
+  session: ParticipantSession;
+};
+
 type ApiErrorBody = {
   message?: string;
 };
@@ -40,6 +64,14 @@ const toRoomSummary = (room: ApiRoomSummary): RoomSummary => ({
   joinCode: room.id,
   name: room.name,
   participantsCount: room.participantCount
+});
+
+const toRoomParticipant = (participant: ApiParticipantSummary): RoomParticipant => ({
+  exactScores: participant.exactScoreHits,
+  id: participant.id,
+  name: participant.displayName,
+  points: participant.totalScore,
+  predictionStatus: "empty"
 });
 
 const requestJson = async <ResponseBody>(path: string, init?: RequestInit) => {
@@ -87,3 +119,35 @@ export const enterRoom = async (roomId: string, password: string) =>
     }),
     method: "POST"
   });
+
+export const enterParticipant = async (roomId: string, input: EnterParticipantInput) => {
+  const response = await requestJson<EnterParticipantResponse>(
+    `/api/rooms/${encodeURIComponent(roomId)}/participants/enter`,
+    {
+      body: JSON.stringify(input),
+      method: "POST"
+    }
+  );
+
+  return {
+    participant: toRoomParticipant(response.participant),
+    participants: response.participants.map(toRoomParticipant),
+    session: response.session
+  };
+};
+
+export const fetchParticipants = async (roomId: string, sessionToken: string) => {
+  const response = await requestJson<ParticipantsResponse>(
+    `/api/rooms/${encodeURIComponent(roomId)}/participants`,
+    {
+      headers: {
+        Authorization: `Bearer ${sessionToken}`
+      }
+    }
+  );
+
+  return {
+    participant: toRoomParticipant(response.participant),
+    participants: response.participants.map(toRoomParticipant)
+  };
+};

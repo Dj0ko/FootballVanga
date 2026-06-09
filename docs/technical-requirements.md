@@ -176,10 +176,12 @@ Current room endpoints use the same API shape in both storage modes:
 - `GET /api/rooms` returns public room summaries only.
 - `POST /api/rooms` creates a room and stores the room password as a scrypt hash.
 - `POST /api/rooms/:roomId/enter` verifies the room password without returning private room contents.
+- `POST /api/rooms/:roomId/participants/enter` verifies the room password, creates or resumes a participant by display name plus participant code, stores the participant code as a scrypt hash, and returns a participant session token.
+- `GET /api/rooms/:roomId/participants` returns the participant list only when called with a valid participant session bearer token.
 
 When `DATABASE_URL` is configured, room storage is PostgreSQL-backed and expects applied migrations.
 
-When `DATABASE_URL` is absent, room storage is in-memory for local manual checks. Rooms created in this mode reset after the API process restarts.
+When `DATABASE_URL` is absent, room and participant storage are in-memory for local manual checks. Rooms, participants, and participant sessions created in this mode reset after the API process restarts.
 
 ## Local Development
 
@@ -201,7 +203,7 @@ The frontend dev server is configured for:
 http://localhost:5173/
 ```
 
-Prediction workspace UI checks can still use mock data without the backend. Room list, room creation, and room password entry require the API. Leave `DATABASE_URL` empty for local in-memory room storage, or set it and run migrations for PostgreSQL-backed storage.
+Prediction workspace UI checks can still use mock data without the backend. Room list, room creation, room password entry, participant entry, and participant lists require the API. Leave `DATABASE_URL` empty for local in-memory room and participant storage, or set it and run migrations for PostgreSQL-backed storage.
 
 Run both apps when backend/API work is needed:
 
@@ -227,7 +229,7 @@ Run automated tests:
 npm test
 ```
 
-The current test suite covers shared password hashing, room API route behavior with Fastify injection, and World Cup 2026 seed migration invariants.
+The current test suite covers shared password hashing, room API route behavior, participant entry/session behavior with Fastify injection, and World Cup 2026 seed migration invariants.
 
 Run database migrations:
 
@@ -252,7 +254,7 @@ ADMIN_SESSION_SECRET
 
 Local defaults are documented in `apps/api/.env.example`.
 
-For local in-memory room storage, leave `DATABASE_URL` empty. Set it only when the API should use PostgreSQL.
+For local in-memory room and participant storage, leave `DATABASE_URL` empty. Set it only when the API should use PostgreSQL.
 
 Production values belong in `/etc/footballvanga.env` on the server and must not be committed.
 
@@ -273,7 +275,7 @@ npm run admin:session-secret
 1. Database schema and migrations. Completed as the initial migration scaffold.
 2. Seed data for World Cup 2026 groups, teams, and group-stage matches. Completed as seed migration data.
 3. Real room creation, public room list, room entry, and room password hashes. Completed as API-backed room endpoints with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
-4. Participant display-name entry, participant code hashes, and participant session ownership.
+4. Participant display-name entry, participant code hashes, and participant session ownership. Completed as API-backed participant entry with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 5. Prediction persistence for group standings and match scores, with backend deadline enforcement.
 6. PostgreSQL-backed match results from the hidden admin result-entry screen.
 7. Scoring recalculation and room leaderboard.

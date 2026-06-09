@@ -4,7 +4,12 @@ import { pathToFileURL } from "node:url";
 
 import cors from "@fastify/cors";
 import Fastify from "fastify";
-import { SCORING_RULES, type ApiMeta } from "@footballvanga/shared";
+import {
+  SCORING_RULES,
+  type ApiMeta,
+  type ParticipantSession,
+  type ParticipantSummary
+} from "@footballvanga/shared";
 
 import {
   createAdminSessionCookie,
@@ -14,9 +19,16 @@ import {
 } from "./adminAuth.js";
 import { type ApiConfig, readConfig } from "./config.js";
 import { createDatabasePool } from "./database.js";
-import { createInMemoryRoomRepository } from "./inMemoryRoomRepository.js";
+import { createInMemoryParticipantRepository } from "./inMemoryParticipantRepository.js";
+import { createInMemoryFootballStore, createInMemoryRoomRepository } from "./inMemoryRoomRepository.js";
+import { createParticipantRepository, type ParticipantRepository } from "./participantRepository.js";
 import { hashPassword, verifyPassword } from "./passwordHash.js";
 import { createRoomRepository, type RoomRepository } from "./roomRepository.js";
+import {
+  createParticipantSessionToken,
+  getParticipantSessionExpiresAt,
+  hashParticipantSessionToken
+} from "./sessionToken.js";
 
 type AdminLoginBody = {
   password?: string;
@@ -36,6 +48,12 @@ type EnterRoomBody = {
   password?: string;
 };
 
+type EnterParticipantBody = {
+  code?: string;
+  displayName?: string;
+  roomPassword?: string;
+};
+
 type MatchResultRecord = {
   finishedAtIso: string;
   matchId: string;
@@ -46,6 +64,7 @@ type MatchResultRecord = {
 };
 
 type BuildServerDependencies = {
+  participantRepository?: ParticipantRepository | null;
   roomRepository?: RoomRepository | null;
 };
 
@@ -98,6 +117,7 @@ const isScoreValue = (value: unknown): value is number =>
   Number.isInteger(value) && Number(value) >= 0 && Number(value) <= 99;
 
 const MIN_ROOM_PASSWORD_LENGTH = 4;
+const MIN_PARTICIPANT_CODE_LENGTH = 4;
 
 const getMatchResults = () =>
   Array.from(matchResultsById.values()).sort(
@@ -115,16 +135,57 @@ const hasAdminSession = (config: ApiConfig, cookieHeader: string | undefined) =>
       })
   );
 
+const getBearerToken = (authorizationHeader: string | undefined) => {
+  if (!authorizationHeader) {
+    return null;
+  }
+
+  const [scheme, token] = authorizationHeader.split(" ");
+
+  return scheme?.toLocaleLowerCase("en-US") === "bearer" && token ? token : null;
+};
+
+const createParticipantSession = async (
+  participantRepository: ParticipantRepository,
+  participant: ParticipantSummary
+): Promise<ParticipantSession> => {
+  const token = createParticipantSessionToken();
+  const expiresAt = getParticipantSessionExpiresAt();
+
+  await participantRepository.createParticipantSession({
+    expiresAt,
+    participantId: participant.id,
+    tokenHash: hashParticipantSessionToken(token)
+  });
+
+  return {
+    expiresAtIso: expiresAt.toISOString(),
+    participantId: participant.id,
+    token
+  };
+};
+
 export const buildServer = async (config: ApiConfig = readConfig(), dependencies: BuildServerDependencies = {}) => {
-  const shouldCreateDatabasePool = dependencies.roomRepository === undefined;
+  const shouldCreateStorage =
+    dependencies.roomRepository === undefined && dependencies.participantRepository === undefined;
+  const shouldCreateDatabasePool = shouldCreateStorage;
   const databasePool = shouldCreateDatabasePool && config.databaseUrl ? createDatabasePool(config.databaseUrl) : null;
-  const roomRepository = shouldCreateDatabasePool
+  const inMemoryStore = shouldCreateStorage && !databasePool ? createInMemoryFootballStore() : null;
+  const roomRepository = shouldCreateStorage
     ? databasePool
       ? createRoomRepository(databasePool)
-      : createInMemoryRoomRepository()
+      : createInMemoryRoomRepository({ store: inMemoryStore ?? undefined })
     : null;
-  const resolvedRoomRepository =
-    dependencies.roomRepository === undefined ? roomRepository : dependencies.roomRepository;
+  const participantRepository = shouldCreateStorage
+    ? databasePool
+      ? createParticipantRepository(databasePool)
+      : inMemoryStore
+        ? createInMemoryParticipantRepository(inMemoryStore)
+        : null
+    : null;
+  const resolvedRoomRepository = dependencies.roomRepository === undefined ? roomRepository : dependencies.roomRepository;
+  const resolvedParticipantRepository =
+    dependencies.participantRepository === undefined ? participantRepository : dependencies.participantRepository;
   const app = Fastify({
     logger: config.nodeEnv !== "test"
   });
@@ -237,6 +298,135 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
     return {
       ok: true,
       roomId: room.id
+    };
+  });
+
+  app.post<{ Body: EnterParticipantBody; Params: { roomId: string } }>(
+    "/api/rooms/:roomId/participants/enter",
+    async (request, reply) => {
+      if (!resolvedRoomRepository || !resolvedParticipantRepository) {
+        reply.code(503);
+        return {
+          message: "Participant storage is not configured."
+        };
+      }
+
+      const displayName = request.body.displayName?.trim() ?? "";
+      const code = request.body.code ?? "";
+      const roomPassword = request.body.roomPassword ?? "";
+
+      if (!displayName) {
+        reply.code(400);
+        return {
+          message: "Participant display name is required."
+        };
+      }
+
+      if (code.length < MIN_PARTICIPANT_CODE_LENGTH) {
+        reply.code(400);
+        return {
+          message: `Participant code must be at least ${MIN_PARTICIPANT_CODE_LENGTH} characters.`
+        };
+      }
+
+      if (roomPassword.length < MIN_ROOM_PASSWORD_LENGTH) {
+        reply.code(400);
+        return {
+          message: `Room password must be at least ${MIN_ROOM_PASSWORD_LENGTH} characters.`
+        };
+      }
+
+      const room = await resolvedRoomRepository.getRoomById(request.params.roomId);
+
+      if (!room) {
+        reply.code(404);
+        return {
+          message: "Room was not found."
+        };
+      }
+
+      if (!(await verifyPassword(roomPassword, room.password_hash))) {
+        reply.code(401);
+        return {
+          message: "Invalid room password."
+        };
+      }
+
+      const existingParticipant = await resolvedParticipantRepository.getParticipantByDisplayName({
+        displayName,
+        roomId: room.id
+      });
+      let participant: ParticipantSummary;
+      let isCreated = false;
+
+      if (existingParticipant) {
+        if (!(await verifyPassword(code, existingParticipant.codeHash))) {
+          reply.code(401);
+          return {
+            message: "Invalid participant code."
+          };
+        }
+
+        participant = {
+          displayName: existingParticipant.displayName,
+          exactScoreHits: 0,
+          id: existingParticipant.id,
+          totalScore: 0
+        };
+      } else {
+        participant = await resolvedParticipantRepository.createParticipant({
+          codeHash: await hashPassword(code),
+          displayName,
+          roomId: room.id
+        });
+        isCreated = true;
+      }
+
+      const session = await createParticipantSession(resolvedParticipantRepository, participant);
+      const participants = await resolvedParticipantRepository.listParticipants(room.id);
+      const currentParticipant = participants.find((currentParticipant) => currentParticipant.id === participant.id);
+
+      reply.code(isCreated ? 201 : 200);
+      return {
+        participant: currentParticipant ?? participant,
+        participants,
+        session
+      };
+    }
+  );
+
+  app.get<{ Params: { roomId: string } }>("/api/rooms/:roomId/participants", async (request, reply) => {
+    if (!resolvedParticipantRepository) {
+      reply.code(503);
+      return {
+        message: "Participant storage is not configured."
+      };
+    }
+
+    const token = getBearerToken(request.headers.authorization);
+
+    if (!token) {
+      reply.code(401);
+      return {
+        message: "Participant session is required."
+      };
+    }
+
+    const participant = await resolvedParticipantRepository.getParticipantBySessionTokenHash({
+      roomId: request.params.roomId,
+      tokenHash: hashParticipantSessionToken(token)
+    });
+
+    if (!participant) {
+      reply.code(401);
+      return {
+        message: "Participant session is required."
+      };
+    }
+
+    return {
+      participant,
+      participants: await resolvedParticipantRepository.listParticipants(request.params.roomId)
     };
   });
 

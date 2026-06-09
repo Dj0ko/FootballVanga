@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { ApiError, createRoom as createRoomRequest, enterRoom, fetchRooms } from "./api/rooms";
+import type { ParticipantSession } from "@footballvanga/shared";
+
 import {
-  mockParticipantCodesByRoomId,
-  type CreateRoomInput,
-  type RoomParticipant,
-  type RoomSummary
-} from "./data/mockFootball";
+  ApiError,
+  createRoom as createRoomRequest,
+  enterParticipant as enterParticipantRequest,
+  enterRoom,
+  fetchRooms
+} from "./api/rooms";
+import { type CreateRoomInput, type RoomParticipant, type RoomSummary } from "./data/mockFootball";
 import { AdminResultsScreen } from "./screens/admin-results/AdminResultsScreen";
 import {
   RoomEntryScreen,
@@ -21,26 +24,15 @@ import { WorkspaceScreen } from "./screens/workspace/WorkspaceScreen";
 
 type AppScreen = "welcome" | "rooms" | "roomEntry" | "roomLobby" | "workspace";
 
-const createDraftParticipant = (name: string): RoomParticipant => ({
-  name,
-  points: 0,
-  exactScores: 0,
-  predictionStatus: "draft"
-});
-
-const normalizeParticipantName = (name: string) => name.trim().toLocaleLowerCase("ru-RU");
-
 export default function App() {
   const isAdminResultsRoute = window.location.pathname === "/admin/results";
   const [screen, setScreen] = useState<AppScreen>("welcome");
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
   const [activeRoom, setActiveRoom] = useState<RoomSummary | null>(null);
   const [currentParticipant, setCurrentParticipant] = useState<RoomParticipant | null>(null);
+  const [currentParticipantSession, setCurrentParticipantSession] = useState<ParticipantSession | null>(null);
   const [viewedParticipant, setViewedParticipant] = useState<RoomParticipant | null>(null);
   const [participantsByRoomId, setParticipantsByRoomId] = useState<Record<string, RoomParticipant[]>>({});
-  const [participantCodesByRoomId, setParticipantCodesByRoomId] = useState<Record<string, Record<string, string>>>(
-    mockParticipantCodesByRoomId
-  );
   const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [roomsError, setRoomsError] = useState("");
@@ -71,9 +63,7 @@ export default function App() {
       ? []
       : getRoomParticipants(activeRoom.id).map((participant) => ({
           ...participant,
-          isCurrent:
-            currentParticipant !== null &&
-            normalizeParticipantName(participant.name) === normalizeParticipantName(currentParticipant.name)
+          isCurrent: currentParticipant !== null && participant.id === currentParticipant.id
         }));
 
   const createRoom = async (input: CreateRoomInput) => {
@@ -88,10 +78,6 @@ export default function App() {
         ...currentParticipantsByRoomId,
         [nextRoom.id]: []
       }));
-      setParticipantCodesByRoomId((currentCodesByRoomId) => ({
-        ...currentCodesByRoomId,
-        [nextRoom.id]: {}
-      }));
 
       return true;
     } catch (error) {
@@ -105,6 +91,7 @@ export default function App() {
   const openRoomEntry = (room: RoomSummary) => {
     setActiveRoom(room);
     setCurrentParticipant(null);
+    setCurrentParticipantSession(null);
     setViewedParticipant(null);
     setScreen("roomEntry");
   };
@@ -126,57 +113,48 @@ export default function App() {
     }
   };
 
-  const enterParticipant = ({ code, name }: ParticipantEntryInput): ParticipantEntryResult => {
+  const enterParticipant = async ({
+    code,
+    name,
+    roomPassword
+  }: ParticipantEntryInput): Promise<ParticipantEntryResult> => {
     if (!activeRoom) {
-      return "invalid-code";
+      return "unavailable";
     }
 
-    const normalizedName = normalizeParticipantName(name);
-    const currentRoomParticipants = getRoomParticipants(activeRoom.id);
-    const existingParticipant = currentRoomParticipants.find(
-      (participant) => normalizeParticipantName(participant.name) === normalizedName
-    );
-    const roomCodes = participantCodesByRoomId[activeRoom.id] ?? {};
+    try {
+      const result = await enterParticipantRequest(activeRoom.id, {
+        code,
+        displayName: name,
+        roomPassword
+      });
 
-    if (existingParticipant) {
-      if (roomCodes[existingParticipant.name] !== code) {
-        return "invalid-code";
-      }
-
-      setCurrentParticipant(existingParticipant);
+      setParticipantsByRoomId((currentParticipantsByRoomId) => ({
+        ...currentParticipantsByRoomId,
+        [activeRoom.id]: result.participants
+      }));
+      setRooms((currentRooms) =>
+        currentRooms.map((room) =>
+          room.id === activeRoom.id ? { ...room, participantsCount: result.participants.length } : room
+        )
+      );
+      setActiveRoom((currentRoom) =>
+        currentRoom?.id === activeRoom.id
+          ? { ...currentRoom, participantsCount: result.participants.length }
+          : currentRoom
+      );
+      setCurrentParticipant(result.participant);
+      setCurrentParticipantSession(result.session);
       setViewedParticipant(null);
       setScreen("roomLobby");
       return "success";
-    }
-
-    const nextParticipant = createDraftParticipant(name.trim());
-    const nextParticipants = [...currentRoomParticipants, nextParticipant];
-
-    setParticipantsByRoomId((currentParticipantsByRoomId) => ({
-      ...currentParticipantsByRoomId,
-      [activeRoom.id]: nextParticipants
-    }));
-    setParticipantCodesByRoomId((currentCodesByRoomId) => ({
-      ...currentCodesByRoomId,
-      [activeRoom.id]: {
-        ...(currentCodesByRoomId[activeRoom.id] ?? {}),
-        [nextParticipant.name]: code
+    } catch (error) {
+      if (error instanceof ApiError && [400, 401].includes(error.status)) {
+        return "invalid-code";
       }
-    }));
-    setRooms((currentRooms) =>
-      currentRooms.map((room) =>
-        room.id === activeRoom.id ? { ...room, participantsCount: nextParticipants.length } : room
-      )
-    );
-    setActiveRoom((currentRoom) =>
-      currentRoom?.id === activeRoom.id
-        ? { ...currentRoom, participantsCount: nextParticipants.length }
-        : currentRoom
-    );
-    setCurrentParticipant(nextParticipant);
-    setViewedParticipant(null);
-    setScreen("roomLobby");
-    return "success";
+
+      return "unavailable";
+    }
   };
 
   const openWorkspace = (participant: RoomParticipant) => {
@@ -210,30 +188,37 @@ export default function App() {
     return (
       <RoomEntryScreen
         room={activeRoom}
-        onBackToRooms={() => setScreen("rooms")}
+        onBackToRooms={() => {
+          setCurrentParticipantSession(null);
+          setScreen("rooms");
+        }}
         onEnterParticipant={enterParticipant}
         onVerifyRoomPassword={verifyRoomPassword}
       />
     );
   }
 
-  if (screen === "roomLobby" && activeRoom && currentParticipant) {
+  if (screen === "roomLobby" && activeRoom && currentParticipant && currentParticipantSession) {
     const activeRoomParticipants = getActiveRoomParticipants();
 
     return (
       <RoomLobbyScreen
         participants={activeRoomParticipants}
         room={activeRoom}
-        onBackToRooms={() => setScreen("rooms")}
+        onBackToRooms={() => {
+          setCurrentParticipant(null);
+          setCurrentParticipantSession(null);
+          setViewedParticipant(null);
+          setScreen("rooms");
+        }}
         onOpenMyPrediction={() => openWorkspace(currentParticipant)}
         onOpenParticipantPrediction={openWorkspace}
       />
     );
   }
 
-  if (screen === "workspace" && activeRoom && currentParticipant && viewedParticipant) {
-    const isReadOnly =
-      normalizeParticipantName(viewedParticipant.name) !== normalizeParticipantName(currentParticipant.name);
+  if (screen === "workspace" && activeRoom && currentParticipant && currentParticipantSession && viewedParticipant) {
+    const isReadOnly = viewedParticipant.id !== currentParticipant.id;
 
     return (
       <WorkspaceScreen

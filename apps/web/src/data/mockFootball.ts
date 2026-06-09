@@ -37,6 +37,7 @@ export type Participant = {
 export type PredictionStatus = "saved" | "draft" | "empty";
 
 export type RoomParticipant = Participant & {
+  id: string;
   isCurrent?: boolean;
   predictionStatus: PredictionStatus;
 };
@@ -843,37 +844,6 @@ export const completedMatchResults: CompletedMatchResult[] = [
     }
   }
 ];
-
-export const participants: Participant[] = [
-  { name: "Алексей", points: 18, exactScores: 4 },
-  { name: "Марта", points: 16, exactScores: 3 },
-  { name: "Никита", points: 16, exactScores: 2 }
-];
-
-export const roomParticipants: RoomParticipant[] = [
-  { name: "Алексей", points: 18, exactScores: 4, predictionStatus: "saved" },
-  { name: "Марта", points: 16, exactScores: 3, predictionStatus: "saved" },
-  { name: "Никита", points: 16, exactScores: 2, predictionStatus: "saved" }
-];
-
-export const firstRoom: RoomSummary = {
-  id: "chm-druzya",
-  name: "ЧМ у друзей",
-  joinCode: "chm-druzya",
-  participantsCount: roomParticipants.length
-};
-
-export const mockRoomPasswordsById: Record<string, string> = {
-  [firstRoom.id]: "1111"
-};
-
-export const mockParticipantCodesByRoomId: Record<string, Record<string, string>> = {
-  [firstRoom.id]: {
-    Алексей: "1111",
-    Марта: "2222",
-    Никита: "3333"
-  }
-};
 
 export const globalLeaders: GlobalLeader[] = [
   { name: "Алексей", roomName: "ЧМ у друзей", points: 18, exactScores: 4 },

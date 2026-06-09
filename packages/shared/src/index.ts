@@ -23,6 +23,12 @@ export type ParticipantSummary = {
   exactScoreHits: number;
 };
 
+export type ParticipantSession = {
+  participantId: ParticipantId;
+  token: string;
+  expiresAtIso: string;
+};
+
 export type Team = {
   id: TeamId;
   name: string;
@@ -88,4 +94,3 @@ export type ApiMeta = {
   stage: "scaffold" | "mvp" | "production";
   scoring: typeof SCORING_RULES;
 };
-

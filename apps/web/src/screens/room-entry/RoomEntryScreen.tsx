@@ -8,14 +8,15 @@ import styles from "./RoomEntryScreen.module.css";
 export type ParticipantEntryInput = {
   code: string;
   name: string;
+  roomPassword: string;
 };
 
-export type ParticipantEntryResult = "success" | "invalid-code";
+export type ParticipantEntryResult = "success" | "invalid-code" | "unavailable";
 export type RoomPasswordResult = "success" | "invalid-password" | "unavailable";
 
 type RoomEntryScreenProps = {
   onBackToRooms: () => void;
-  onEnterParticipant: (input: ParticipantEntryInput) => ParticipantEntryResult;
+  onEnterParticipant: (input: ParticipantEntryInput) => Promise<ParticipantEntryResult>;
   onVerifyRoomPassword: (password: string) => Promise<RoomPasswordResult>;
   room: RoomSummary;
 };
@@ -32,6 +33,7 @@ export function RoomEntryScreen({
   const [participantName, setParticipantName] = useState("");
   const [participantCode, setParticipantCode] = useState("");
   const [isRoomUnlocked, setIsRoomUnlocked] = useState(false);
+  const [isEnteringParticipant, setIsEnteringParticipant] = useState(false);
   const [isVerifyingRoom, setIsVerifyingRoom] = useState(false);
   const [error, setError] = useState("");
 
@@ -67,21 +69,36 @@ export function RoomEntryScreen({
     setIsVerifyingRoom(false);
   };
 
-  const enterParticipant = (event: FormEvent<HTMLFormElement>) => {
+  const enterParticipant = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!canEnterParticipant) {
       return;
     }
 
-    const result = onEnterParticipant({
+    setIsEnteringParticipant(true);
+
+    const result = await onEnterParticipant({
       code: participantCode,
-      name: trimmedParticipantName
+      name: trimmedParticipantName,
+      roomPassword
     });
+
+    if (result === "success") {
+      return;
+    }
 
     if (result === "invalid-code") {
       setError("Имя уже занято. Если это вы, проверьте код участника.");
+      setIsEnteringParticipant(false);
+      return;
     }
+
+    if (result === "unavailable") {
+      setError("Не удалось войти участником. Попробуйте еще раз.");
+    }
+
+    setIsEnteringParticipant(false);
   };
 
   return (
@@ -111,6 +128,7 @@ export function RoomEntryScreen({
               Имя участника
               <input
                 autoFocus
+                disabled={isEnteringParticipant}
                 required
                 value={participantName}
                 onChange={(event) => {
@@ -127,6 +145,7 @@ export function RoomEntryScreen({
                 minLength={MIN_SECRET_LENGTH}
                 required
                 type="password"
+                disabled={isEnteringParticipant}
                 value={participantCode}
                 onChange={(event) => {
                   setParticipantCode(event.target.value);
@@ -138,9 +157,13 @@ export function RoomEntryScreen({
 
             {error ? <p className={styles.error}>{error}</p> : null}
 
-            <button type="submit" className={styles.primaryButton} disabled={!canEnterParticipant}>
+            <button
+              type="submit"
+              className={styles.primaryButton}
+              disabled={!canEnterParticipant || isEnteringParticipant}
+            >
               <UserPlus size={18} aria-hidden="true" />
-              Войти участником
+              {isEnteringParticipant ? "Входим..." : "Войти участником"}
             </button>
           </form>
         ) : (

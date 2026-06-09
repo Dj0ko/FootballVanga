@@ -27,7 +27,7 @@ export function ParticipantsSidebar({ onOpenParticipant, participants }: Partici
 
       <ol className={styles.list}>
         {participants.map((participant) => (
-          <li key={participant.name}>
+          <li key={participant.id}>
             <button
               type="button"
               className={styles.participantButton}

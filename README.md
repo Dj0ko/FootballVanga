@@ -31,7 +31,7 @@ Then open:
 http://localhost:5173/
 ```
 
-The current prediction workspace still uses mocked data. Room list, room creation, and room password entry call the API. Without `DATABASE_URL`, the API uses local in-memory room storage; rooms reset after the API restarts. Set `DATABASE_URL` and run migrations when PostgreSQL-backed storage is needed.
+The current prediction workspace still uses mocked data. Room list, room creation, room password entry, participant entry, and participant lists call the API. Without `DATABASE_URL`, the API uses local in-memory room and participant storage; rooms, participants, and sessions reset after the API restarts. Set `DATABASE_URL` and run migrations when PostgreSQL-backed storage is needed.
 
 Run both apps when backend/API work is needed:
 

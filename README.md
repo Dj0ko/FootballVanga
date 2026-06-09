@@ -31,12 +31,19 @@ Then open:
 http://localhost:5173/
 ```
 
-The current UI uses mocked data and does not require the API to be running.
+The current prediction workspace still uses mocked data. Room list, room creation, and room password entry call the API. Without `DATABASE_URL`, the API uses local in-memory room storage; rooms reset after the API restarts. Set `DATABASE_URL` and run migrations when PostgreSQL-backed storage is needed.
 
 Run both apps when backend/API work is needed:
 
 ```bash
 npm run dev
+```
+
+Or run the two processes in separate terminals:
+
+```bash
+npm run dev:api
+npm run dev:web
 ```
 
 Build everything:
@@ -49,6 +56,12 @@ Run type checks:
 
 ```bash
 npm run typecheck
+```
+
+Run automated tests:
+
+```bash
+npm test
 ```
 
 Run database migrations:

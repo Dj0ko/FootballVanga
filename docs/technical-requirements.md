@@ -171,6 +171,16 @@ Admin/operator endpoints must use operator-only authorization. Room passwords, p
 
 The first admin implementation can use a single operator password hash from environment variables plus an HTTP-only admin session cookie. Result writes may be in-memory during scaffold work, but production result storage belongs in PostgreSQL.
 
+Current room endpoints use the same API shape in both storage modes:
+
+- `GET /api/rooms` returns public room summaries only.
+- `POST /api/rooms` creates a room and stores the room password as a scrypt hash.
+- `POST /api/rooms/:roomId/enter` verifies the room password without returning private room contents.
+
+When `DATABASE_URL` is configured, room storage is PostgreSQL-backed and expects applied migrations.
+
+When `DATABASE_URL` is absent, room storage is in-memory for local manual checks. Rooms created in this mode reset after the API process restarts.
+
 ## Local Development
 
 Install dependencies:
@@ -191,7 +201,7 @@ The frontend dev server is configured for:
 http://localhost:5173/
 ```
 
-The current frontend uses mock data and does not require the backend for UI-only checks.
+Prediction workspace UI checks can still use mock data without the backend. Room list, room creation, and room password entry require the API. Leave `DATABASE_URL` empty for local in-memory room storage, or set it and run migrations for PostgreSQL-backed storage.
 
 Run both apps when backend/API work is needed:
 
@@ -210,6 +220,14 @@ Run type checks:
 ```bash
 npm run typecheck
 ```
+
+Run automated tests:
+
+```bash
+npm test
+```
+
+The current test suite covers shared password hashing, room API route behavior with Fastify injection, and World Cup 2026 seed migration invariants.
 
 Run database migrations:
 
@@ -234,6 +252,8 @@ ADMIN_SESSION_SECRET
 
 Local defaults are documented in `apps/api/.env.example`.
 
+For local in-memory room storage, leave `DATABASE_URL` empty. Set it only when the API should use PostgreSQL.
+
 Production values belong in `/etc/footballvanga.env` on the server and must not be committed.
 
 Generate an admin password hash with:
@@ -250,9 +270,9 @@ npm run admin:session-secret
 
 ## MVP Implementation Order
 
-1. Database schema and migrations.
-2. Seed data for World Cup 2026 groups, teams, and group-stage matches.
-3. Real room creation, public room list, room entry, and room password hashes.
+1. Database schema and migrations. Completed as the initial migration scaffold.
+2. Seed data for World Cup 2026 groups, teams, and group-stage matches. Completed as seed migration data.
+3. Real room creation, public room list, room entry, and room password hashes. Completed as API-backed room endpoints with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 4. Participant display-name entry, participant code hashes, and participant session ownership.
 5. Prediction persistence for group standings and match scores, with backend deadline enforcement.
 6. PostgreSQL-backed match results from the hidden admin result-entry screen.

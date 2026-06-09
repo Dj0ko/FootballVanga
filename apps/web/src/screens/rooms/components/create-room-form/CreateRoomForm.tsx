@@ -5,13 +5,14 @@ import type { CreateRoomInput } from "../../../../data/mockFootball";
 import styles from "./CreateRoomForm.module.css";
 
 type CreateRoomFormProps = {
+  isSubmitting: boolean;
   onCancel: () => void;
-  onSubmit: (room: CreateRoomInput) => void;
+  onSubmit: (room: CreateRoomInput) => Promise<void>;
 };
 
 const MIN_PASSWORD_LENGTH = 4;
 
-export function CreateRoomForm({ onCancel, onSubmit }: CreateRoomFormProps) {
+export function CreateRoomForm({ isSubmitting, onCancel, onSubmit }: CreateRoomFormProps) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -27,7 +28,7 @@ export function CreateRoomForm({ onCancel, onSubmit }: CreateRoomFormProps) {
       return;
     }
 
-    onSubmit({
+    void onSubmit({
       name: trimmedName,
       password
     });
@@ -44,6 +45,7 @@ export function CreateRoomForm({ onCancel, onSubmit }: CreateRoomFormProps) {
           Название комнаты
           <input
             autoFocus
+            disabled={isSubmitting}
             required
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -56,6 +58,7 @@ export function CreateRoomForm({ onCancel, onSubmit }: CreateRoomFormProps) {
           <span className={styles.passwordField}>
             <input
               aria-describedby="room-password-hint"
+              disabled={isSubmitting}
               minLength={MIN_PASSWORD_LENGTH}
               required
               type={isPasswordVisible ? "text" : "password"}
@@ -66,6 +69,7 @@ export function CreateRoomForm({ onCancel, onSubmit }: CreateRoomFormProps) {
             <button
               type="button"
               aria-label={isPasswordVisible ? "Скрыть пароль" : "Показать пароль"}
+              disabled={isSubmitting}
               onClick={() => setIsPasswordVisible((current) => !current)}
             >
               {isPasswordVisible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
@@ -78,11 +82,11 @@ export function CreateRoomForm({ onCancel, onSubmit }: CreateRoomFormProps) {
       </div>
 
       <div className={styles.actions}>
-        <button type="submit" className={styles.submitButton} disabled={!canSubmit}>
+        <button type="submit" className={styles.submitButton} disabled={!canSubmit || isSubmitting}>
           <Plus size={18} aria-hidden="true" />
-          Создать комнату
+          {isSubmitting ? "Создаем..." : "Создать комнату"}
         </button>
-        <button type="button" className={styles.cancelButton} onClick={onCancel}>
+        <button type="button" className={styles.cancelButton} onClick={onCancel} disabled={isSubmitting}>
           Отмена
         </button>
       </div>

@@ -11,11 +11,12 @@ export type ParticipantEntryInput = {
 };
 
 export type ParticipantEntryResult = "success" | "invalid-code";
+export type RoomPasswordResult = "success" | "invalid-password" | "unavailable";
 
 type RoomEntryScreenProps = {
   onBackToRooms: () => void;
   onEnterParticipant: (input: ParticipantEntryInput) => ParticipantEntryResult;
-  onVerifyRoomPassword: (password: string) => boolean;
+  onVerifyRoomPassword: (password: string) => Promise<RoomPasswordResult>;
   room: RoomSummary;
 };
 
@@ -31,26 +32,39 @@ export function RoomEntryScreen({
   const [participantName, setParticipantName] = useState("");
   const [participantCode, setParticipantCode] = useState("");
   const [isRoomUnlocked, setIsRoomUnlocked] = useState(false);
+  const [isVerifyingRoom, setIsVerifyingRoom] = useState(false);
   const [error, setError] = useState("");
 
   const trimmedParticipantName = participantName.trim();
   const canVerifyRoom = roomPassword.length >= MIN_SECRET_LENGTH;
   const canEnterParticipant = trimmedParticipantName.length > 0 && participantCode.length >= MIN_SECRET_LENGTH;
 
-  const verifyRoom = (event: FormEvent<HTMLFormElement>) => {
+  const verifyRoom = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!canVerifyRoom) {
       return;
     }
 
-    if (!onVerifyRoomPassword(roomPassword)) {
+    setIsVerifyingRoom(true);
+
+    const result = await onVerifyRoomPassword(roomPassword);
+
+    if (result === "invalid-password") {
       setError("Пароль комнаты не подходит.");
+      setIsVerifyingRoom(false);
+      return;
+    }
+
+    if (result === "unavailable") {
+      setError("Не удалось проверить комнату. Попробуйте еще раз.");
+      setIsVerifyingRoom(false);
       return;
     }
 
     setError("");
     setIsRoomUnlocked(true);
+    setIsVerifyingRoom(false);
   };
 
   const enterParticipant = (event: FormEvent<HTMLFormElement>) => {
@@ -138,6 +152,7 @@ export function RoomEntryScreen({
                 minLength={MIN_SECRET_LENGTH}
                 required
                 type="password"
+                disabled={isVerifyingRoom}
                 value={roomPassword}
                 onChange={(event) => {
                   setRoomPassword(event.target.value);
@@ -149,9 +164,9 @@ export function RoomEntryScreen({
 
             {error ? <p className={styles.error}>{error}</p> : null}
 
-            <button type="submit" className={styles.primaryButton} disabled={!canVerifyRoom}>
+            <button type="submit" className={styles.primaryButton} disabled={!canVerifyRoom || isVerifyingRoom}>
               <KeyRound size={18} aria-hidden="true" />
-              Проверить пароль
+              {isVerifyingRoom ? "Проверяем..." : "Проверить пароль"}
             </button>
           </form>
         )}

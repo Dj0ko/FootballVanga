@@ -15,9 +15,13 @@ import { RoomsLeaderboard } from "./components/rooms-leaderboard/RoomsLeaderboar
 import styles from "./RoomsScreen.module.css";
 
 type RoomsScreenProps = {
+  error: string;
+  isCreatePending: boolean;
+  isLoading: boolean;
   rooms: RoomSummary[];
-  onCreateRoom: (room: CreateRoomInput) => void;
+  onCreateRoom: (room: CreateRoomInput) => Promise<boolean>;
   onOpenRoom: (room: RoomSummary) => void;
+  onRetry: () => void;
 };
 
 const getActiveRoomsLabel = (count: number) => {
@@ -39,16 +43,27 @@ const getActiveRoomsLabel = (count: number) => {
   return `${count} активных`;
 };
 
-export function RoomsScreen({ rooms, onCreateRoom, onOpenRoom }: RoomsScreenProps) {
+export function RoomsScreen({
+  error,
+  isCreatePending,
+  isLoading,
+  rooms,
+  onCreateRoom,
+  onOpenRoom,
+  onRetry
+}: RoomsScreenProps) {
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const hasRooms = rooms.length > 0;
 
   const openCreateRoom = () => setIsCreatingRoom(true);
   const closeCreateRoom = () => setIsCreatingRoom(false);
 
-  const createRoom = (room: CreateRoomInput) => {
-    onCreateRoom(room);
-    closeCreateRoom();
+  const createRoom = async (room: CreateRoomInput) => {
+    const wasCreated = await onCreateRoom(room);
+
+    if (wasCreated) {
+      closeCreateRoom();
+    }
   };
 
   return (
@@ -59,7 +74,12 @@ export function RoomsScreen({ rooms, onCreateRoom, onOpenRoom }: RoomsScreenProp
           <h1 className={styles.title}>Комнаты</h1>
         </div>
         <DeadlineCountdown className={styles.deadlineCountdown} />
-        <button type="button" className={styles.createButton} onClick={openCreateRoom} disabled={isCreatingRoom}>
+        <button
+          type="button"
+          className={styles.createButton}
+          onClick={openCreateRoom}
+          disabled={isCreatingRoom || isCreatePending}
+        >
           <Plus size={18} aria-hidden="true" />
           Создать комнату
         </button>
@@ -76,7 +96,11 @@ export function RoomsScreen({ rooms, onCreateRoom, onOpenRoom }: RoomsScreenProp
               <span>{getActiveRoomsLabel(rooms.length)}</span>
             </div>
 
-            {isCreatingRoom ? <CreateRoomForm onCancel={closeCreateRoom} onSubmit={createRoom} /> : null}
+            {isCreatingRoom ? (
+              <CreateRoomForm isSubmitting={isCreatePending} onCancel={closeCreateRoom} onSubmit={createRoom} />
+            ) : null}
+
+            {error && hasRooms ? <p className={styles.inlineError}>{error}</p> : null}
 
             {hasRooms ? (
               <div className={styles.roomList}>
@@ -101,6 +125,19 @@ export function RoomsScreen({ rooms, onCreateRoom, onOpenRoom }: RoomsScreenProp
                     </button>
                   </article>
                 ))}
+              </div>
+            ) : isLoading ? (
+              <div className={styles.emptyState} role="status">
+                <h2>Загружаем комнаты</h2>
+              </div>
+            ) : error ? (
+              <div className={styles.emptyState} role="alert">
+                <h2>Комнаты недоступны</h2>
+                <p>{error}</p>
+                <button type="button" className={styles.emptyButton} onClick={onRetry}>
+                  Повторить
+                  <ArrowRight size={20} aria-hidden="true" />
+                </button>
               </div>
             ) : !isCreatingRoom ? (
               <div className={styles.emptyState} role="status">

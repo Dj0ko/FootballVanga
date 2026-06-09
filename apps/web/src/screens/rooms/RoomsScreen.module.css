@@ -182,6 +182,17 @@
   line-height: 1.55;
 }
 
+.inlineError {
+  margin: 14px 0 0;
+  border: 1px solid rgba(216, 77, 63, 0.34);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(216, 77, 63, 0.08);
+  color: #ad3228;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
 @media (max-width: 1060px) {
   .contentGrid {
     grid-template-columns: 1fr;

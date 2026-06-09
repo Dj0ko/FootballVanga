@@ -12,7 +12,10 @@
     "admin:session-secret": "npm run admin:session-secret -w apps/api",
     "db:migrate": "npm run db:migrate -w apps/api",
     "dev": "npm run build -w packages/shared && concurrently -n web,api -c green,cyan \"npm run dev -w apps/web\" \"npm run dev -w apps/api\"",
+    "dev:api": "npm run build -w packages/shared && npm run dev -w apps/api",
+    "dev:web": "npm run dev -w apps/web",
     "build": "npm run build -w packages/shared && npm run build -w apps/api && npm run build -w apps/web",
+    "test": "npm run test -w apps/api",
     "typecheck": "npm run typecheck -w packages/shared && npm run typecheck -w apps/api && npm run typecheck -w apps/web",
     "lint": "npm run typecheck",
     "start:api": "npm run start -w apps/api"

@@ -1,0 +1,157 @@
+.shell {
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.backButton {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #d9dfd4;
+  border-radius: 8px;
+  padding: 0 13px;
+  background: #ffffff;
+  color: #405047;
+  font-weight: 900;
+}
+
+.roomTitle {
+  min-width: 0;
+}
+
+.roomTitle h1 {
+  overflow: hidden;
+  margin-bottom: 0;
+  color: #16211b;
+  font-size: 1.6rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deadlineCountdown {
+  justify-self: end;
+}
+
+.panel {
+  display: grid;
+  width: min(560px, 100%);
+  gap: 16px;
+  margin: 0 auto;
+  border: 1px solid #d9dfd4;
+  border-radius: 8px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.header {
+  border-bottom: 1px solid #dfe5dc;
+  padding-bottom: 14px;
+}
+
+.header p {
+  margin: 0 0 5px;
+  color: #277a50;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.header h2 {
+  margin-bottom: 0;
+  font-size: 1.45rem;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+  color: #536159;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.error {
+  margin-bottom: 0;
+  border: 1px solid rgba(216, 77, 63, 0.34);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(216, 77, 63, 0.08);
+  color: #ad3228;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.primaryButton {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #207d4f;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.primaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #68766d;
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.note svg {
+  flex: 0 0 auto;
+  color: #207d4f;
+}
+
+@media (max-width: 780px) {
+  .shell {
+    padding: 16px;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .backButton,
+  .deadlineCountdown,
+  .primaryButton {
+    width: 100%;
+  }
+
+  .deadlineCountdown {
+    justify-self: stretch;
+  }
+
+  .roomTitle h1 {
+    font-size: 1.35rem;
+    white-space: normal;
+  }
+}

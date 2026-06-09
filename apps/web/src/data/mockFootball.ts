@@ -801,8 +801,7 @@ export const participants: Participant[] = [
 export const roomParticipants: RoomParticipant[] = [
   { name: "Алексей", points: 18, exactScores: 4, predictionStatus: "saved" },
   { name: "Марта", points: 16, exactScores: 3, predictionStatus: "saved" },
-  { name: "Никита", points: 16, exactScores: 2, predictionStatus: "saved" },
-  { name: "Вы", points: 0, exactScores: 0, isCurrent: true, predictionStatus: "draft" }
+  { name: "Никита", points: 16, exactScores: 2, predictionStatus: "saved" }
 ];
 
 export const firstRoom: RoomSummary = {
@@ -810,6 +809,18 @@ export const firstRoom: RoomSummary = {
   name: "ЧМ у друзей",
   joinCode: "chm-druzya",
   participantsCount: roomParticipants.length
+};
+
+export const mockRoomPasswordsById: Record<string, string> = {
+  [firstRoom.id]: "1111"
+};
+
+export const mockParticipantCodesByRoomId: Record<string, Record<string, string>> = {
+  [firstRoom.id]: {
+    Алексей: "1111",
+    Марта: "2222",
+    Никита: "3333"
+  }
 };
 
 export const globalLeaders: GlobalLeader[] = [

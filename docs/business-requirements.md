@@ -81,7 +81,7 @@ Version 1 should not require a public room directory.
 
 Users can enter a room from the start page by using the room access details they received from the room creator. A direct room link may also be supported, but it should only open the room entry screen. Room contents, participant predictions, and leaderboard data remain hidden until the correct room password / join code is entered.
 
-In the guest model, a person is considered a room participant after successfully entering the room password and creating a display name. A person who only has a direct room link, but does not have the room password, should not be able to view room contents.
+In the guest model, a person is considered a room participant after successfully entering the room password, creating a unique display name, and setting a participant code. A person who only has a direct room link, but does not have the room password, should not be able to view room contents.
 
 The room creator is responsible for sharing the room password / join code with intended participants.
 
@@ -93,9 +93,11 @@ The participant list does not grant edit rights by itself. It only helps with na
 
 Version 1 uses guest identity.
 
-When joining a room, a participant creates a display name. This name is shown to other room participants in prediction views and leaderboard tables.
+When joining a room, a participant creates a display name and a short participant code. This name is shown to other room participants in prediction views and leaderboard tables.
 
-Display names must be unique within a room. If a display name is already taken, the app should ask the new participant to choose another name.
+Display names must be unique within a room. If a display name is already taken, the app should treat that as a returning participant attempt and require the matching participant code.
+
+Participant codes are lightweight Version 1 credentials, not full site accounts. They protect edit access for a participant inside one room.
 
 Participants are expected to start from the app home page, enter the room password / join code, and continue into the room.
 
@@ -103,26 +105,30 @@ The app must identify which participant owns the current browser session. Before
 
 If a participant returns from the same browser session, the app may show a clear "continue as <display name>" action for the participant identity stored in that browser.
 
+If a participant returns from a different browser, the app should ask for the room password, display name, and participant code.
+
 If a participant opens another participant's prediction, it must be shown in read-only mode.
 
 If a user enters the room and creates a new display name, that is treated as a new participant. It does not give access to edit any existing participant's predictions.
 
-The product still needs a way for a guest participant to return to the same prediction entry before the deadline without allowing another participant to impersonate them. The exact mechanism is an open product decision.
+Entering another participant's display name without that participant's code must not grant edit access.
 
 ## Prediction Flow
 
 1. User opens the app.
 2. User chooses or opens a room.
 3. User enters the room password / join code.
-4. User sees the room lobby with existing participant names.
-5. Returning user continues as their existing participant when the browser session can prove ownership.
-6. New user enters a unique guest display name.
-7. User fills group standings predictions.
-8. User fills match score predictions.
-9. User saves predictions.
-10. Until the room deadline, user can return and edit their own predictions.
-11. After the deadline, predictions become locked.
-12. User can view the room leaderboard and other participants' predictions.
+4. User enters a display name and participant code.
+5. Existing display names require the matching participant code.
+6. New display names create a new room participant with that code.
+7. User sees the room lobby with existing participant names.
+8. Returning user continues as their existing participant when the browser session can prove ownership.
+9. User fills group standings predictions.
+10. User fills match score predictions.
+11. User saves predictions.
+12. Until the room deadline, user can return and edit their own predictions.
+13. After the deadline, predictions become locked.
+14. User can view the room leaderboard and other participants' predictions.
 
 ## Deadline Rules
 
@@ -264,7 +270,6 @@ Avoid introducing additional infrastructure unless there is a clear product need
 
 ## Open Questions
 
-- How should a guest participant return to their previous prediction before the deadline without impersonation: browser cookie, participant PIN, or another lightweight mechanism?
 - Should room creation itself require an operator-controlled creation code, or is rate limiting enough for Version 1?
 - What external result source should be used for automatic score importing?
 - Should automatic result importing be included in Version 1, or should Version 1 ship with manual result entry and add importing later?

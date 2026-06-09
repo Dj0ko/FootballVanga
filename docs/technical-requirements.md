@@ -107,11 +107,14 @@ score_snapshots
 
 Room passwords / join codes must be stored as hashes, not plain text.
 
+Participant codes must be stored as hashes, not plain text.
+
 Participant edit tokens must be stored as hashes if persisted. The plaintext token may live only in the user's browser cookie or local storage.
 
 ## Access Rules
 
 - A room password / join code grants access to room contents.
+- A participant display name plus participant code can establish a participant session.
 - A participant session grants edit rights only for that participant.
 - Other participant predictions are visible but read-only.
 - Prediction writes are rejected after the room deadline.
@@ -138,6 +141,7 @@ GET  /api/meta
 GET  /api/rooms
 POST /api/rooms
 POST /api/rooms/:roomId/enter
+POST /api/rooms/:roomId/participants/enter
 GET  /api/rooms/:roomId
 POST /api/rooms/:roomId/participants
 GET  /api/rooms/:roomId/participants

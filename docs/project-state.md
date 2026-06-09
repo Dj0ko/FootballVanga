@@ -43,9 +43,15 @@ The frontend currently has:
 - A mocked room creation form with room name and room password fields.
 - Room creation currently requires:
   - non-empty room name;
-  - room password with at least 8 characters.
+  - room password with at least 4 characters.
 - A mocked all-rooms top-5 leaderboard sidebar on the rooms screen.
-- A mocked room card that opens the room lobby.
+- A mocked room card that opens the room entry screen.
+- A mocked room entry screen with:
+  - room password check before entering room contents;
+  - participant display name entry;
+  - participant code entry with at least 4 characters;
+  - existing participant name protection by participant code;
+  - new participant creation when the display name is not taken.
 - A mocked room lobby screen with:
   - room overview in the central area;
   - room participant sidebar on the right;
@@ -73,6 +79,7 @@ Current frontend organization:
 - `apps/web/src/screens/rooms` contains the rooms screen and its CSS module.
 - `apps/web/src/screens/rooms/components/create-room-form` contains the room creation form and its CSS module.
 - `apps/web/src/screens/rooms/components/rooms-leaderboard` contains the all-rooms leaderboard sidebar and its CSS module.
+- `apps/web/src/screens/room-entry` contains the mocked room password and participant entry flow.
 - `apps/web/src/screens/room-lobby` contains the room lobby screen and its CSS module.
 - `apps/web/src/screens/room-lobby/components/room-overview` contains the central room overview and its CSS module.
 - `apps/web/src/screens/room-lobby/components/participants-sidebar` contains the room participants sidebar and its CSS module.
@@ -126,7 +133,7 @@ Current rooms screen decisions:
 - Room creation form actions should sit at the bottom in this order:
   - `Создать комнату`
   - `Отмена`
-- Password validation should stay lightweight for Version 1: minimum 8 characters, no special-character/case/number rules.
+- Password validation should stay lightweight for Version 1: minimum 4 characters, no special-character/case/number rules.
 - The password field can be shown or hidden to reduce entry mistakes.
 - The mocked form adds the new room to the local room list for now.
 - Existing rooms are shown as compact room cards with participant count, locked-room status, and enter action.
@@ -136,7 +143,25 @@ Current rooms screen decisions:
 
 ### Room Lobby Screen
 
-After clicking `Войти` on a room card, the user should land on a room lobby screen before the prediction workspace.
+After clicking `Войти` on a room card, the user should land on the room entry screen before the room lobby.
+
+### Room Entry Screen
+
+Current room entry decisions:
+
+- The room entry screen first asks for the room password.
+- Room contents stay hidden until the room password is accepted.
+- After room password acceptance, the user enters a participant display name and participant code.
+- Participant display names are unique inside a room.
+- If the display name is already taken, the participant code must match that existing participant.
+- If the display name is free, the UI creates a new mocked participant for that room.
+- Participant codes use the same lightweight Version 1 rule as room passwords: minimum 4 characters.
+- Mock room passwords and participant codes are kept outside `RoomSummary` so the frontend shape is closer to future backend API contracts.
+- `RoomSummary` should remain public room data; real room passwords and participant codes should be checked by backend endpoints later.
+
+### Room Lobby Screen
+
+After room password and participant entry, the user lands on the room lobby before the prediction workspace.
 
 Current room lobby decisions:
 
@@ -154,7 +179,7 @@ Current room lobby decisions:
 - The right sidebar is titled `Участники` and shows the participant list.
 - The room lobby central area should not include a separate room top list while the participant sidebar is visible.
 - Participant rows open that participant's prediction view.
-- The current participant row opens the editable `Мой прогноз` workspace.
+- The current participant session opens the editable `Мой прогноз` workspace.
 - Other participant rows open the same prediction workspace in read-only mode.
 - The `Мой прогноз` action opens the mocked group prediction screen for now.
 
@@ -237,6 +262,10 @@ Recent UI work completed on 2026-06-09:
 - Room lobby and workspace topbars use the room name as the only title text.
 - The active participant name belongs in the workspace status strip, not in the topbar title.
 - The shared countdown appears in the welcome, rooms, room lobby, and workspace header/topbar areas.
+- Room entry is mocked in a backend-shaped way: public room summaries are separate from room password checks and participant code checks.
+- `App.tsx` now separates the current participant session from the participant whose prediction is being viewed.
+- New participants are created through the mocked room entry flow only after the room password is accepted.
+- Existing participant names require the matching 4+ character participant code; entering someone else's name without that code must not grant edit access.
 
 ## Verification Policy
 

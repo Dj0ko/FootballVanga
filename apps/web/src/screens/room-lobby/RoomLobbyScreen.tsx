@@ -1,17 +1,13 @@
 import { ArrowLeft, Lock } from "lucide-react";
 
 import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineCountdown";
-import {
-  groupStageMatchCount,
-  roomParticipants,
-  type RoomParticipant,
-  type RoomSummary
-} from "../../data/mockFootball";
+import { groupStageMatchCount, type RoomParticipant, type RoomSummary } from "../../data/mockFootball";
 import { ParticipantsSidebar } from "./components/participants-sidebar/ParticipantsSidebar";
 import { RoomOverview } from "./components/room-overview/RoomOverview";
 import styles from "./RoomLobbyScreen.module.css";
 
 type RoomLobbyScreenProps = {
+  participants: RoomParticipant[];
   room: RoomSummary;
   onBackToRooms: () => void;
   onOpenMyPrediction: () => void;
@@ -19,6 +15,7 @@ type RoomLobbyScreenProps = {
 };
 
 export function RoomLobbyScreen({
+  participants,
   room,
   onBackToRooms,
   onOpenMyPrediction,
@@ -47,11 +44,11 @@ export function RoomLobbyScreen({
       <div className={styles.contentGrid}>
         <RoomOverview
           matchCount={groupStageMatchCount}
-          participants={roomParticipants}
+          participants={participants}
           onOpenWorkspace={onOpenMyPrediction}
         />
         <ParticipantsSidebar
-          participants={roomParticipants}
+          participants={participants}
           onOpenParticipant={onOpenParticipantPrediction}
         />
       </div>

@@ -9,7 +9,7 @@ type CreateRoomFormProps = {
   onSubmit: (room: CreateRoomInput) => void;
 };
 
-const MIN_PASSWORD_LENGTH = 8;
+const MIN_PASSWORD_LENGTH = 4;
 
 export function CreateRoomForm({ onCancel, onSubmit }: CreateRoomFormProps) {
   const [name, setName] = useState("");
@@ -61,7 +61,7 @@ export function CreateRoomForm({ onCancel, onSubmit }: CreateRoomFormProps) {
               type={isPasswordVisible ? "text" : "password"}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Минимум 8 символов"
+              placeholder="Минимум 4 символа"
             />
             <button
               type="button"
@@ -72,7 +72,7 @@ export function CreateRoomForm({ onCancel, onSubmit }: CreateRoomFormProps) {
             </button>
           </span>
           <span className={styles.hint} id="room-password-hint">
-            Минимум 8 символов. Придумайте пароль, который удобно отправить друзьям.
+            Минимум 4 символа. Придумайте пароль, который удобно отправить друзьям.
           </span>
         </label>
       </div>

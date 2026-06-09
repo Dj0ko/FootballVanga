@@ -1,0 +1,125 @@
+.form {
+  display: grid;
+  width: min(560px, 100%);
+  gap: 16px;
+  margin: 24px auto 0;
+  border: 1px solid #dfe5dc;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+}
+
+.header {
+  display: grid;
+  gap: 4px;
+}
+
+.header h2 {
+  margin-bottom: 0;
+  font-size: 1.05rem;
+}
+
+.fields {
+  display: grid;
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+  color: #536159;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.passwordField {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+}
+
+.passwordField:focus-within {
+  border-radius: 8px;
+  outline: 3px solid rgba(242, 184, 75, 0.45);
+  outline-offset: 2px;
+}
+
+.passwordField input {
+  border-radius: 8px 0 0 8px;
+}
+
+.passwordField input:focus {
+  outline: 0;
+}
+
+.passwordField button {
+  display: grid;
+  min-height: 42px;
+  place-items: center;
+  border: 1px solid #cfd8cb;
+  border-left: 0;
+  border-radius: 0 8px 8px 0;
+  background: #ffffff;
+  color: #207d4f;
+}
+
+.passwordField button:focus-visible {
+  outline: 0;
+}
+
+.passwordField:focus-within button {
+  background: rgba(242, 184, 75, 0.08);
+  color: #1f5f3e;
+}
+
+.hint {
+  color: #68766d;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.submitButton,
+.cancelButton {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-weight: 900;
+}
+
+.submitButton {
+  border: 0;
+  background: #207d4f;
+  color: #ffffff;
+}
+
+.submitButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.cancelButton {
+  border: 1px solid #d9dfd4;
+  background: #f9faf7;
+  color: #405047;
+}
+
+@media (max-width: 780px) {
+  .actions {
+    flex-direction: column;
+  }
+
+  .submitButton,
+  .cancelButton {
+    width: 100%;
+  }
+}

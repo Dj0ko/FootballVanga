@@ -1,11 +1,13 @@
 import { ArrowRight, Lock, LogIn, Plus, ShieldCheck, Users } from "lucide-react";
+import { useState } from "react";
 
-import type { RoomSummary } from "../../data/mockFootball";
+import type { CreateRoomInput, RoomSummary } from "../../data/mockFootball";
+import { CreateRoomForm } from "./CreateRoomForm";
 import styles from "./RoomsScreen.module.css";
 
 type RoomsScreenProps = {
   rooms: RoomSummary[];
-  onCreateRoom: () => void;
+  onCreateRoom: (room: CreateRoomInput) => void;
   onOpenRoom: (room: RoomSummary) => void;
 };
 
@@ -29,7 +31,16 @@ const getActiveRoomsLabel = (count: number) => {
 };
 
 export function RoomsScreen({ rooms, onCreateRoom, onOpenRoom }: RoomsScreenProps) {
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const hasRooms = rooms.length > 0;
+
+  const openCreateRoom = () => setIsCreatingRoom(true);
+  const closeCreateRoom = () => setIsCreatingRoom(false);
+
+  const createRoom = (room: CreateRoomInput) => {
+    onCreateRoom(room);
+    closeCreateRoom();
+  };
 
   return (
     <main className={styles.shell}>
@@ -38,7 +49,7 @@ export function RoomsScreen({ rooms, onCreateRoom, onOpenRoom }: RoomsScreenProp
           <p className={styles.eyebrow}>Прогнозы группового этапа</p>
           <h1 className={styles.title}>Комнаты</h1>
         </div>
-        <button type="button" className={styles.createButton} onClick={onCreateRoom}>
+        <button type="button" className={styles.createButton} onClick={openCreateRoom} disabled={isCreatingRoom}>
           <Plus size={18} aria-hidden="true" />
           Создать комнату
         </button>
@@ -52,6 +63,8 @@ export function RoomsScreen({ rooms, onCreateRoom, onOpenRoom }: RoomsScreenProp
           </div>
           <span>{getActiveRoomsLabel(rooms.length)}</span>
         </div>
+
+        {isCreatingRoom ? <CreateRoomForm onCancel={closeCreateRoom} onSubmit={createRoom} /> : null}
 
         {hasRooms ? (
           <div className={styles.roomList}>
@@ -78,16 +91,16 @@ export function RoomsScreen({ rooms, onCreateRoom, onOpenRoom }: RoomsScreenProp
               </article>
             ))}
           </div>
-        ) : (
+        ) : !isCreatingRoom ? (
           <div className={styles.emptyState} role="status">
             <h2>Комнат еще нет</h2>
             <p>Откройте первую и зовите свою футбольную компанию.</p>
-            <button type="button" className={styles.emptyButton} onClick={onCreateRoom}>
+            <button type="button" className={styles.emptyButton} onClick={openCreateRoom}>
               Создать комнату
               <ArrowRight size={20} aria-hidden="true" />
             </button>
           </div>
-        )}
+        ) : null}
       </section>
     </main>
   );

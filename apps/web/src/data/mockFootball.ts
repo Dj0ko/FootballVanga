@@ -30,6 +30,11 @@ export type RoomSummary = {
   deadlineLabel: string;
 };
 
+export type CreateRoomInput = {
+  name: string;
+  password: string;
+};
+
 export const groups: Group[] = [
   {
     id: "a",

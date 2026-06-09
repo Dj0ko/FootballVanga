@@ -45,10 +45,15 @@
   color: #ffffff;
 }
 
+.createButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .openButton {
   min-height: 44px;
   padding: 0 16px;
-  background: #d84d3f;
+  background: #207d4f;
   color: #ffffff;
 }
 

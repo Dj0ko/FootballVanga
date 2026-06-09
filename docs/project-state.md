@@ -37,7 +37,10 @@ The frontend currently has:
 - A room zero state when there are no rooms:
   - `Комнат еще нет`
   - `Откройте первую и зовите свою футбольную компанию.`
-- A mocked room creation action that adds a demo room to the list.
+- A mocked room creation form with room name and room password fields.
+- Room creation currently requires:
+  - non-empty room name;
+  - room password with at least 8 characters.
 - A mocked room card that opens the room/prediction workspace.
 - A mocked room entry panel.
 - A mocked lobby with participants.
@@ -86,8 +89,20 @@ Current rooms screen decisions:
   - `Комнат еще нет`
   - `Откройте первую и зовите свою футбольную компанию.`
 - The room empty state should stay text-and-action focused; no decorative plus icon above the copy.
-- The mocked `Создать комнату` action can add a demo room for now.
+- The `Создать комнату` action opens an inline room creation form.
+- Room creation form fields:
+  - `Название комнаты`
+  - `Пароль комнаты`
+- Room creation form layout should keep fields in a vertical stack.
+- Room creation form should be a compact centered block, not stretched across the whole rooms panel.
+- Room creation form actions should sit at the bottom in this order:
+  - `Создать комнату`
+  - `Отмена`
+- Password validation should stay lightweight for Version 1: minimum 8 characters, no special-character/case/number rules.
+- The password field can be shown or hidden to reduce entry mistakes.
+- The mocked form adds the new room to the local room list for now.
 - Existing rooms are shown as compact room cards with participant count, locked-room status, deadline label, and enter action.
+- Room card enter actions should use the green primary style, not a red/destructive style.
 
 ## Local Development Notes
 
@@ -147,7 +162,7 @@ Requires explicit user permission:
 Likely next UI/product work:
 
 - Replace the mocked room workspace with a real step-by-step flow.
-- Replace mocked room creation with a real room creation form.
+- Connect the mocked room creation form to real backend room creation.
 - Add a rules explanation modal/window.
 - Design room entry and lobby states.
 - Add read-only participant prediction views.

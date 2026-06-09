@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { firstRoom, type RoomSummary } from "./data/mockFootball";
+import { firstRoom, type CreateRoomInput, type RoomSummary } from "./data/mockFootball";
 import { RoomsScreen } from "./screens/rooms/RoomsScreen";
 import { WelcomeScreen } from "./screens/welcome/WelcomeScreen";
 import { WorkspaceScreen } from "./screens/workspace/WorkspaceScreen";
@@ -12,15 +12,20 @@ export default function App() {
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
   const [roomCode, setRoomCode] = useState(firstRoom.joinCode);
 
-  const createMockRoom = () => {
+  const createRoom = ({ name }: CreateRoomInput) => {
     setRooms((currentRooms) => {
-      if (currentRooms.some((room) => room.id === firstRoom.id)) {
-        return currentRooms;
-      }
+      const nextRoomNumber = currentRooms.length + 1;
+      const roomId = `room-${Date.now().toString(36)}-${nextRoomNumber}`;
+      const nextRoom: RoomSummary = {
+        id: roomId,
+        name,
+        joinCode: roomId,
+        participantsCount: 0,
+        deadlineLabel: "дедлайн настроим позже"
+      };
 
-      return [firstRoom, ...currentRooms];
+      return [nextRoom, ...currentRooms];
     });
-    setRoomCode(firstRoom.joinCode);
   };
 
   const openRoom = (room: RoomSummary) => {
@@ -33,7 +38,7 @@ export default function App() {
   }
 
   if (screen === "rooms") {
-    return <RoomsScreen rooms={rooms} onCreateRoom={createMockRoom} onOpenRoom={openRoom} />;
+    return <RoomsScreen rooms={rooms} onCreateRoom={createRoom} onOpenRoom={openRoom} />;
   }
 
   return <WorkspaceScreen initialRoomCode={roomCode} />;

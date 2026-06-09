@@ -32,13 +32,27 @@ The frontend currently has:
   - `FootballVanga`
   - `Закрытая игра прогнозов для футбольных компаний.`
   - `Входи в комнату, оставляй прогноз до старта турнира и следи, как меняется таблица после каждого матча.`
-- A `Продолжить` button that opens the mocked room/prediction workspace.
+- A `Продолжить` button that opens the mocked rooms screen.
+- A mocked rooms screen shown after welcome.
+- A room zero state when there are no rooms:
+  - `Комнат еще нет`
+  - `Откройте первую и зовите свою футбольную компанию.`
+- A mocked room creation action that adds a demo room to the list.
+- A mocked room card that opens the room/prediction workspace.
 - A mocked room entry panel.
 - A mocked lobby with participants.
 - Mocked group standing and match score controls.
 - A mocked leaderboard.
 
-The frontend still uses local mock data in `apps/web/src/App.tsx`. It does not call the backend yet.
+The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts`. It does not call the backend yet.
+
+Current frontend organization:
+
+- `apps/web/src/App.tsx` coordinates the current screen state.
+- `apps/web/src/screens/welcome` contains the welcome screen and its CSS module.
+- `apps/web/src/screens/rooms` contains the rooms list / zero state screen and its CSS module.
+- `apps/web/src/screens/workspace` contains the mocked prediction workspace and its CSS module.
+- `apps/web/src/styles.css` contains only global base styles.
 
 ## Completed UI Decisions
 
@@ -60,6 +74,20 @@ Current welcome screen decisions:
 - Horizontal field lines were intentionally removed because they do not match football field markings.
 - The left-side dark gradient is intentional and should remain because it improves text contrast.
 - Rules/scoring explanations should not appear on the welcome screen; they will be added later in a separate rules window/modal.
+
+### Rooms Screen
+
+The first screen after welcome should be the rooms screen.
+
+Current rooms screen decisions:
+
+- If there are no rooms, show an empty state instead of the workspace.
+- Empty state copy:
+  - `Комнат еще нет`
+  - `Откройте первую и зовите свою футбольную компанию.`
+- The room empty state should stay text-and-action focused; no decorative plus icon above the copy.
+- The mocked `Создать комнату` action can add a demo room for now.
+- Existing rooms are shown as compact room cards with participant count, locked-room status, deadline label, and enter action.
 
 ## Local Development Notes
 
@@ -119,6 +147,7 @@ Requires explicit user permission:
 Likely next UI/product work:
 
 - Replace the mocked room workspace with a real step-by-step flow.
+- Replace mocked room creation with a real room creation form.
 - Add a rules explanation modal/window.
 - Design room entry and lobby states.
 - Add read-only participant prediction views.

@@ -47,15 +47,14 @@ The frontend currently has:
   - room overview in the central area;
   - room participant sidebar on the right;
   - room stats for participant count, submitted predictions, deadline, and match count;
-  - `Мой прогноз` action that opens the mocked room/prediction workspace.
-- A mocked room entry panel.
-- A mocked lobby with participants.
-- Mocked group standing and match score controls.
-- A mocked leaderboard.
+  - `Мой прогноз` action that opens the mocked group prediction screen.
+- A mocked group prediction screen with all 12 World Cup 2026 groups in a desktop 4-column grid.
+- Drag-and-drop team ordering inside each group using `@dnd-kit`.
+- Team rows show SVG flags imported from the MIT-licensed `flag-icons` package.
 
 The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts`. It does not call the backend yet.
 
-World Cup 2026 groups and group-stage fixtures for future seed data are documented in `docs/world-cup-2026-data.md`.
+World Cup 2026 group data is now used by the mocked prediction screen. Group-stage fixtures for future seed data are documented in `docs/world-cup-2026-data.md`.
 
 Current frontend organization:
 
@@ -68,6 +67,9 @@ Current frontend organization:
 - `apps/web/src/screens/room-lobby/components/room-overview` contains the central room overview and its CSS module.
 - `apps/web/src/screens/room-lobby/components/participants-sidebar` contains the room participants sidebar and its CSS module.
 - `apps/web/src/screens/workspace` contains the mocked prediction workspace and its CSS module.
+- `apps/web/src/screens/workspace/components/group-prediction-board` contains the 12-group prediction board and its CSS module.
+- `apps/web/src/screens/workspace/components/group-prediction-card` contains the sortable group card and its CSS module.
+- `apps/web/src/data/teamFlags.ts` imports only the needed tournament flag SVG assets from `flag-icons`.
 - `apps/web/src/styles.css` contains only global base styles.
 
 ## Completed UI Decisions
@@ -141,7 +143,19 @@ Current room lobby decisions:
 - The right sidebar is titled `Участники` and shows the participant list.
 - The room lobby central area should not include a separate room top list while the participant sidebar is visible.
 - Participant rows are informational for now; opening another participant's prediction is the next UI step.
-- The `Мой прогноз` action can open the existing mocked prediction workspace for now.
+- The `Мой прогноз` action opens the mocked group prediction screen for now.
+
+### My Prediction Screen
+
+Current prediction screen decisions:
+
+- The first `Мой прогноз` screen focuses on predicted final group standings.
+- It shows all 12 World Cup 2026 groups.
+- On desktop, groups use a 4-column grid, which gives the intended 3 rows by 4 groups.
+- Teams can be reordered with drag-and-drop only within the current group.
+- Team rows show a flag next to each team name.
+- The ordering is stored in local React state for now.
+- Match score prediction controls are deferred to the next step of the prediction flow.
 
 ## Local Development Notes
 
@@ -201,8 +215,8 @@ Requires explicit user permission:
 Likely next UI/product work:
 
 - Add participant prediction view navigation from the room lobby participants list.
-- Replace the mocked room workspace with a real step-by-step prediction flow.
-- Replace placeholder tournament teams/matches with the World Cup 2026 group-stage data from `docs/world-cup-2026-data.md`.
+- Extend `Мой прогноз` into a real step-by-step prediction flow with match score entry.
+- Replace placeholder match fixtures with the World Cup 2026 group-stage match data from `docs/world-cup-2026-data.md`.
 - Connect the mocked room creation form to real backend room creation.
 - Add a rules explanation modal/window.
 - Add read-only participant prediction views.

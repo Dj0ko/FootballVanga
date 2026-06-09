@@ -49,7 +49,7 @@ export function RoomOverview({ deadlineLabel, matchCount, participants, onOpenWo
         </article>
         <article className={styles.statCard}>
           <Trophy size={20} aria-hidden="true" />
-          <span>Матчи группы</span>
+          <span>Матчи группового этапа</span>
           <strong>{matchCount}</strong>
         </article>
       </div>

@@ -12,7 +12,6 @@ export default function App() {
   const [screen, setScreen] = useState<AppScreen>("welcome");
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
   const [activeRoom, setActiveRoom] = useState<RoomSummary>(firstRoom);
-  const [roomCode, setRoomCode] = useState(firstRoom.joinCode);
 
   const createRoom = ({ name }: CreateRoomInput) => {
     setRooms((currentRooms) => {
@@ -32,7 +31,6 @@ export default function App() {
 
   const openRoom = (room: RoomSummary) => {
     setActiveRoom(room);
-    setRoomCode(room.joinCode);
     setScreen("roomLobby");
   };
 
@@ -58,5 +56,11 @@ export default function App() {
     );
   }
 
-  return <WorkspaceScreen initialRoomCode={roomCode} />;
+  return (
+    <WorkspaceScreen
+      deadlineLabel={activeRoom.deadlineLabel}
+      roomName={activeRoom.name}
+      onBackToLobby={() => setScreen("roomLobby")}
+    />
+  );
 }

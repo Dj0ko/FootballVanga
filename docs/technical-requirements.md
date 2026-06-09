@@ -9,6 +9,14 @@
 - Deployment target: existing VPS behind Nginx with a systemd-managed Node service.
 - Package management: npm workspaces.
 
+## Current Frontend Libraries
+
+The current frontend uses:
+
+- `@dnd-kit` for sortable drag-and-drop interactions in the group standings prediction screen.
+- `flag-icons` for SVG team flags. The app imports only the needed tournament flag assets rather than the full flag stylesheet.
+- `lucide-react` for UI icons.
+
 ## Repository Layout
 
 ```text

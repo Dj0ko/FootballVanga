@@ -1,0 +1,98 @@
+.card {
+  display: grid;
+  min-height: 222px;
+  grid-template-rows: auto 1fr;
+  border: 1px solid #dfe5dc;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.card h3 {
+  margin-bottom: 10px;
+  color: #16211b;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.teamList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.teamRow {
+  display: grid;
+  min-height: 42px;
+  grid-template-columns: 30px 24px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e2e8df;
+  border-radius: 8px;
+  padding: 0 6px 0 8px;
+  background: #f9faf7;
+  color: #1f2d25;
+  box-shadow: 0 1px 0 rgba(22, 33, 27, 0.04);
+  cursor: grab;
+  touch-action: none;
+}
+
+.teamRow:hover {
+  border-color: #cddbc8;
+  background: #ffffff;
+}
+
+.teamRow:focus-visible {
+  outline: 3px solid rgba(242, 184, 75, 0.45);
+  outline-offset: 2px;
+}
+
+.teamRowDragging {
+  position: relative;
+  z-index: 2;
+  border-color: #f2b84b;
+  background: #ffffff;
+  box-shadow: 0 14px 26px rgba(22, 33, 27, 0.16);
+  cursor: grabbing;
+}
+
+.position {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 50%;
+  background: #207d4f;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.flag {
+  display: block;
+  width: 22px;
+  height: 16px;
+  border-radius: 3px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(22, 33, 27, 0.14);
+}
+
+.teamName {
+  overflow: hidden;
+  color: #16211b;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dragHint {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  color: #68766d;
+  pointer-events: none;
+}

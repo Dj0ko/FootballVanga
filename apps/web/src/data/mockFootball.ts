@@ -53,14 +53,66 @@ export const groups: Group[] = [
   {
     id: "a",
     name: "Группа A",
-    teams: ["A1", "A2", "A3", "A4"]
+    teams: ["Mexico", "South Africa", "Korea Republic", "Czechia"]
   },
   {
     id: "b",
     name: "Группа B",
-    teams: ["B1", "B2", "B3", "B4"]
+    teams: ["Canada", "Switzerland", "Qatar", "Bosnia and Herzegovina"]
+  },
+  {
+    id: "c",
+    name: "Группа C",
+    teams: ["Brazil", "Morocco", "Haiti", "Scotland"]
+  },
+  {
+    id: "d",
+    name: "Группа D",
+    teams: ["United States", "Paraguay", "Australia", "Turkiye"]
+  },
+  {
+    id: "e",
+    name: "Группа E",
+    teams: ["Germany", "Curacao", "Cote d'Ivoire", "Ecuador"]
+  },
+  {
+    id: "f",
+    name: "Группа F",
+    teams: ["Netherlands", "Japan", "Tunisia", "Sweden"]
+  },
+  {
+    id: "g",
+    name: "Группа G",
+    teams: ["Belgium", "Egypt", "IR Iran", "New Zealand"]
+  },
+  {
+    id: "h",
+    name: "Группа H",
+    teams: ["Spain", "Cabo Verde", "Saudi Arabia", "Uruguay"]
+  },
+  {
+    id: "i",
+    name: "Группа I",
+    teams: ["France", "Senegal", "Norway", "Iraq"]
+  },
+  {
+    id: "j",
+    name: "Группа J",
+    teams: ["Argentina", "Algeria", "Austria", "Jordan"]
+  },
+  {
+    id: "k",
+    name: "Группа K",
+    teams: ["Portugal", "Uzbekistan", "Colombia", "Congo DR"]
+  },
+  {
+    id: "l",
+    name: "Группа L",
+    teams: ["England", "Croatia", "Ghana", "Panama"]
   }
 ];
+
+export const groupStageMatchCount = 72;
 
 export const matches: Match[] = [
   { id: "a-1", group: "Группа A", home: "A1", away: "A2" },

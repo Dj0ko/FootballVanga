@@ -63,13 +63,13 @@ The frontend currently has:
   - room overview in the central area;
   - room participant sidebar on the right;
   - room stats for participant count, submitted predictions, and match count;
-  - `Мой прогноз` action that opens the mocked group prediction screen.
-- Participant rows in the room lobby open that participant's mocked prediction screen.
-- A mocked group prediction screen with all 12 World Cup 2026 groups in a desktop 4-column grid.
+  - `Мой прогноз` action that opens the group prediction screen.
+- Participant rows in the room lobby open that participant's backend-backed prediction screen.
+- A backend-backed group prediction screen with all 12 World Cup 2026 groups in a desktop 4-column grid.
 - Overview group cards open a focused group detail screen.
 - Drag-and-drop team ordering inside the active group detail screen using `@dnd-kit`.
 - Match score inputs for the six matches of the active group.
-- A mocked `Сохранить группу` action on the group detail screen.
+- A `Сохранить группу` action on the group detail screen that persists the current prediction draft.
 - Other participants' prediction detail screens are read-only: no drag-and-drop, score editing, or save action.
 - Overview cards show whether each group is still a draft or saved.
 - Overview cards color the `Счета x/6` counter by completion: red for 0-2, yellow for 3-5, green for 6.
@@ -77,7 +77,7 @@ The frontend currently has:
 - A hidden mocked admin result-entry screen is available at `/admin/results`.
 - The admin screen checks backend admin session status, logs in through `POST /api/admin/login`, and writes scores through `PUT /api/admin/matches/:matchId/result`.
 
-The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts` for tournament display, predictions, and leaderboards.
+The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts` for tournament display and leaderboards. Participant predictions are now loaded from and saved to the backend.
 
 The rooms list, room creation, room password entry, participant entry, participant lists after entry, and hidden `/admin/results` screen call the backend scaffold.
 
@@ -90,6 +90,8 @@ The backend currently has:
 - `POST /api/rooms/:roomId/enter`
 - `POST /api/rooms/:roomId/participants/enter`
 - `GET /api/rooms/:roomId/participants`
+- `GET /api/rooms/:roomId/predictions/:participantId`
+- `PUT /api/rooms/:roomId/predictions/me`
 - `GET /api/match-history`
 - `GET /api/admin/session`
 - `POST /api/admin/login`
@@ -99,7 +101,7 @@ The backend currently has:
 
 Backend result storage is temporary in-memory scaffold state until result endpoints are wired to PostgreSQL.
 
-Room and participant storage use PostgreSQL when `DATABASE_URL` is configured and migrations have been applied. Without `DATABASE_URL`, the API uses local in-memory room and participant storage so room creation, room password entry, participant entry, and participant session checks can be checked without a local database; in-memory rooms, participants, and sessions reset after the API restarts.
+Room, participant, and prediction storage use PostgreSQL when `DATABASE_URL` is configured and migrations have been applied. Without `DATABASE_URL`, the API uses local in-memory room, participant, and prediction storage so room creation, room password entry, participant entry, participant session checks, and prediction persistence can be checked without a local database; in-memory rooms, participants, sessions, and predictions reset after the API restarts.
 
 Room passwords are hashed with the shared scrypt password-hash helper before storage.
 
@@ -119,9 +121,9 @@ The repository now has an automated API test suite:
 
 - `npm test` runs API tests through the root workspace script.
 - API tests type-check test files with `apps/api/tsconfig.test.json`.
-- The current tests cover shared password hashing, room endpoint behavior, participant entry/session behavior through Fastify `inject`, and World Cup 2026 seed migration invariants.
+- The current tests cover shared password hashing, room endpoint behavior, participant entry/session behavior, prediction read/write/deadline behavior through Fastify `inject`, and World Cup 2026 seed migration invariants.
 
-World Cup 2026 group data is now used by the mocked prediction screen and by the backend seed migration. Group-stage fixtures are documented in `docs/world-cup-2026-data.md`.
+World Cup 2026 group data is now used by the prediction screen and by the backend seed migration. Group-stage fixtures are documented in `docs/world-cup-2026-data.md`.
 
 Current frontend organization:
 
@@ -136,7 +138,8 @@ Current frontend organization:
 - `apps/web/src/screens/room-lobby` contains the room lobby screen and its CSS module.
 - `apps/web/src/screens/room-lobby/components/room-overview` contains the central room overview and its CSS module.
 - `apps/web/src/screens/room-lobby/components/participants-sidebar` contains the room participants sidebar and its CSS module.
-- `apps/web/src/screens/workspace` contains the mocked prediction workspace and its CSS module.
+- `apps/web/src/api/predictions.ts` contains prediction read/write API calls.
+- `apps/web/src/screens/workspace` contains the backend-backed prediction workspace and its CSS module.
 - `apps/web/src/screens/workspace/components/group-prediction-board` contains the 12-group prediction board and its CSS module.
 - `apps/web/src/screens/workspace/components/group-prediction-card` contains the read-only overview group card and its CSS module.
 - `apps/web/src/screens/workspace/components/group-prediction-detail` contains the active group editor with sortable standings, match score inputs, and its CSS module.
@@ -248,7 +251,7 @@ Current room lobby decisions:
 - Participant rows open that participant's prediction view.
 - The current participant session opens the editable `Мой прогноз` workspace.
 - Other participant rows open the same prediction workspace in read-only mode.
-- The `Мой прогноз` action opens the mocked group prediction screen for now.
+- The `Мой прогноз` action opens the backend-backed group prediction screen.
 - Result editing must not be available to normal room participants; it belongs to an operator/admin flow.
 
 ### My Prediction Screen
@@ -262,17 +265,18 @@ Current prediction screen decisions:
 - Teams can be reordered with drag-and-drop only inside the active group detail screen.
 - Match scores are entered inside the active group detail screen.
 - The group detail screen has back-to-overview, previous-group, and next-group navigation.
-- The group detail screen has a mocked `Сохранить группу` action.
-- `Сохранить группу` is available even for partially filled groups, so a partial draft can be saved locally.
-- Saving a group marks it as saved in local React state; editing that group's team order or match scores returns it to draft state.
+- The group detail screen has a `Сохранить группу` action that saves the current prediction draft through the backend.
+- `Сохранить группу` is available even for partially filled groups, so a partial draft can be persisted.
+- Saving a group marks it as saved in local React state for the current workspace session; editing that group's team order or match scores returns it to draft state until the next save.
 - Groups with fewer than six filled match scores always display as `Черновик`, even if the current partial group draft was saved.
 - A group displays `Сохранено` only after it has been saved and all six match scores are filled.
 - The overview screen shows saved/draft status per group and a saved-groups counter.
 - The overview `Счета x/6` label is red for 0-2 filled scores, yellow for 3-5, and green for 6/6.
 - Save actions use the warm yellow accent, not the red/destructive color.
 - Team rows show a flag next to each team name.
-- Team ordering and match score inputs are stored in local React state for now.
+- Team ordering and match score inputs are edited in local React state and persisted through the backend on save.
 - The workspace can show either the current participant's editable prediction or another participant's read-only prediction.
+- The backend enforces prediction ownership through the participant session token and rejects prediction saves at or after the tournament deadline.
 - The prediction workspace topbar title is the room name, with the shared deadline countdown on the right.
 - The prediction workspace status strip always shows the active participant name for both editable and read-only views.
 - Mock group-stage matches now use the documented World Cup 2026 fixture order, dates, venues, and kickoff times.
@@ -283,7 +287,7 @@ Current prediction screen decisions:
 
 Do not start the local app unless the user explicitly asks.
 
-For prediction-workspace UI-only work, backend is not required. Room list, room creation, room password entry, participant entry, and participant lists require the API. Without `DATABASE_URL`, the API uses in-memory room and participant storage; set `DATABASE_URL` and run migrations only when PostgreSQL-backed storage is needed.
+Prediction reads/writes, room list, room creation, room password entry, participant entry, and participant lists require the API. Without `DATABASE_URL`, the API uses in-memory room, participant, and prediction storage; set `DATABASE_URL` and run migrations only when PostgreSQL-backed storage is needed.
 
 Docker/Compose is not part of the local development path. The local backend should be usable without Docker and without a local PostgreSQL instance by leaving `DATABASE_URL` empty.
 
@@ -332,7 +336,7 @@ Production Nginx may still proxy to `127.0.0.1:4100`, which is appropriate on th
 
 Recent UI work completed on 2026-06-09:
 
-- Participant rows in the room lobby now open that participant's mocked prediction workspace.
+- Participant rows in the room lobby now open that participant's backend-backed prediction workspace.
 - The current participant opens an editable workspace; other participants open the same workspace in read-only mode.
 - Read-only group details intentionally remove drag-and-drop behavior, score editing, and save actions.
 - `apps/web/src/components/deadline-countdown/DeadlineCountdown.tsx` owns the shared one-line deadline timer.
@@ -345,6 +349,10 @@ Recent UI work completed on 2026-06-09:
 - `App.tsx` now separates the current participant session from the participant whose prediction is being viewed.
 - New participants are created through the backend room entry flow only after the room password is accepted.
 - Existing participant names require the matching 4+ character participant code on the backend; entering someone else's name without that code must not grant edit access.
+- Prediction workspaces now load participant predictions through `GET /api/rooms/:roomId/predictions/:participantId`.
+- The editable current-participant workspace saves standings and filled match scores through `PUT /api/rooms/:roomId/predictions/me`.
+- The frontend converts between UI team names and backend stable team IDs at the API boundary.
+- Participant prediction statuses in the lobby now come from backend summaries as `empty`, `draft`, or `saved`.
 
 Recent backend groundwork completed on 2026-06-09:
 
@@ -354,8 +362,10 @@ Recent backend groundwork completed on 2026-06-09:
 - Real room creation, public room list, and room password entry were wired to API endpoints with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 - Docker/Compose local database scaffolding was intentionally removed; the local no-database path follows the same in-memory fallback pattern as `DjokoNards`.
 - Participant display-name entry, participant code hashes, and participant session ownership were wired to API endpoints with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
-- API tests were added for password hashing, room endpoints, participant entry/session endpoints, and World Cup seed invariants.
-- Prediction persistence for group standings and match scores with backend deadline enforcement remains the next backend roadmap step.
+- Prediction persistence for group standings and match scores was wired to API endpoints with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
+- Prediction saves are validated against tournament teams/matches, require the current participant session, and are rejected after the server-calculated tournament deadline.
+- API tests were added for password hashing, room endpoints, participant entry/session endpoints, prediction endpoints, and World Cup seed invariants.
+- PostgreSQL-backed match results from the hidden admin result-entry screen remain the next backend roadmap step.
 
 ## Verification Policy
 
@@ -383,7 +393,7 @@ The UI is considered complete enough for the current mock stage. The next work s
 2. Seed data for World Cup 2026 groups, teams, and group-stage matches. Completed as `0002_seed_world_cup_2026_group_stage.sql`.
 3. Real room creation, public room list, room entry, and room password hashes. Completed as API endpoints with frontend wiring, in-memory local storage, and PostgreSQL storage when `DATABASE_URL` is set.
 4. Participant display-name entry, participant code hashes, and participant session ownership. Completed as API endpoints with frontend wiring, in-memory local storage, and PostgreSQL storage when `DATABASE_URL` is set.
-5. Prediction persistence for group standings and match scores, with backend deadline enforcement.
+5. Prediction persistence for group standings and match scores, with backend deadline enforcement. Completed as API endpoints with frontend wiring, in-memory local storage, and PostgreSQL storage when `DATABASE_URL` is set.
 6. PostgreSQL-backed match results from the hidden admin result-entry screen, replacing current in-memory result storage.
 7. Scoring recalculation and room leaderboard.
 

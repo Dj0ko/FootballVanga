@@ -7,6 +7,7 @@ export type GroupId = string;
 export type MatchOutcome = "home_win" | "away_win" | "draw";
 
 export type RoomStatus = "draft" | "open" | "locked" | "finished";
+export type PredictionStatus = "saved" | "draft" | "empty";
 
 export type RoomSummary = {
   id: RoomId;
@@ -21,6 +22,7 @@ export type ParticipantSummary = {
   displayName: string;
   totalScore: number;
   exactScoreHits: number;
+  predictionStatus: PredictionStatus;
 };
 
 export type ParticipantSession = {
@@ -72,6 +74,11 @@ export type ParticipantPrediction = {
   matchScores: MatchPrediction[];
   submittedAtIso: string | null;
   updatedAtIso: string | null;
+};
+
+export type SaveParticipantPredictionInput = {
+  groupStandings: GroupStandingPrediction[];
+  matchScores: MatchPrediction[];
 };
 
 export type ScoreBreakdown = {

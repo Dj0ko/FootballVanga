@@ -7,6 +7,8 @@ import Fastify from "fastify";
 import {
   SCORING_RULES,
   type ApiMeta,
+  type GroupStandingPrediction,
+  type MatchPrediction,
   type ParticipantSession,
   type ParticipantSummary
 } from "@footballvanga/shared";
@@ -20,15 +22,18 @@ import {
 import { type ApiConfig, readConfig } from "./config.js";
 import { createDatabasePool } from "./database.js";
 import { createInMemoryParticipantRepository } from "./inMemoryParticipantRepository.js";
+import { createInMemoryPredictionRepository } from "./inMemoryPredictionRepository.js";
 import { createInMemoryFootballStore, createInMemoryRoomRepository } from "./inMemoryRoomRepository.js";
 import { createParticipantRepository, type ParticipantRepository } from "./participantRepository.js";
 import { hashPassword, verifyPassword } from "./passwordHash.js";
+import { createPredictionRepository, type PredictionRepository } from "./predictionRepository.js";
 import { createRoomRepository, type RoomRepository } from "./roomRepository.js";
 import {
   createParticipantSessionToken,
   getParticipantSessionExpiresAt,
   hashParticipantSessionToken
 } from "./sessionToken.js";
+import type { TournamentPredictionMetadata } from "./tournamentMetadata.js";
 
 type AdminLoginBody = {
   password?: string;
@@ -54,6 +59,11 @@ type EnterParticipantBody = {
   roomPassword?: string;
 };
 
+type SavePredictionBody = {
+  groupStandings?: unknown;
+  matchScores?: unknown;
+};
+
 type MatchResultRecord = {
   finishedAtIso: string;
   matchId: string;
@@ -65,6 +75,7 @@ type MatchResultRecord = {
 
 type BuildServerDependencies = {
   participantRepository?: ParticipantRepository | null;
+  predictionRepository?: PredictionRepository | null;
   roomRepository?: RoomRepository | null;
 };
 
@@ -116,6 +127,9 @@ const matchResultsById = new Map<string, MatchResultRecord>(
 const isScoreValue = (value: unknown): value is number =>
   Number.isInteger(value) && Number(value) >= 0 && Number(value) <= 99;
 
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 const MIN_ROOM_PASSWORD_LENGTH = 4;
 const MIN_PARTICIPANT_CODE_LENGTH = 4;
 
@@ -145,6 +159,137 @@ const getBearerToken = (authorizationHeader: string | undefined) => {
   return scheme?.toLocaleLowerCase("en-US") === "bearer" && token ? token : null;
 };
 
+const getAuthenticatedParticipant = async (
+  participantRepository: ParticipantRepository,
+  roomId: string,
+  authorizationHeader: string | undefined
+) => {
+  const token = getBearerToken(authorizationHeader);
+
+  if (!token) {
+    return null;
+  }
+
+  return participantRepository.getParticipantBySessionTokenHash({
+    roomId,
+    tokenHash: hashParticipantSessionToken(token)
+  });
+};
+
+const isPredictionLocked = (deadlineIso: string | null) =>
+  deadlineIso ? Date.now() >= Date.parse(deadlineIso) : false;
+
+const validatePredictionBody = (
+  body: SavePredictionBody,
+  metadata: TournamentPredictionMetadata
+):
+  | {
+      groupStandings: GroupStandingPrediction[];
+      matchScores: MatchPrediction[];
+    }
+  | {
+      message: string;
+    } => {
+  if (!Array.isArray(body.groupStandings) || !Array.isArray(body.matchScores)) {
+    return {
+      message: "Prediction group standings and match scores are required."
+    };
+  }
+
+  const groupStandings: GroupStandingPrediction[] = [];
+  const groupTeamKeys = new Set<string>();
+  const groupPositionKeys = new Set<string>();
+
+  for (const standing of body.groupStandings) {
+    if (!isObjectRecord(standing)) {
+      return {
+        message: "Prediction group standings are invalid."
+      };
+    }
+
+    const groupId = standing.groupId;
+    const teamId = standing.teamId;
+    const position = standing.position;
+
+    if (
+      typeof groupId !== "string" ||
+      typeof teamId !== "string" ||
+      typeof position !== "number" ||
+      !Number.isInteger(position)
+    ) {
+      return {
+        message: "Prediction group standings are invalid."
+      };
+    }
+
+    const groupTeamIds = metadata.groupTeamIds[groupId];
+
+    if (!groupTeamIds || !groupTeamIds.includes(teamId) || position < 1 || position > groupTeamIds.length) {
+      return {
+        message: "Prediction group standings are invalid."
+      };
+    }
+
+    const groupTeamKey = `${groupId}:${teamId}`;
+    const groupPositionKey = `${groupId}:${position}`;
+
+    if (groupTeamKeys.has(groupTeamKey) || groupPositionKeys.has(groupPositionKey)) {
+      return {
+        message: "Prediction group standings contain duplicates."
+      };
+    }
+
+    groupTeamKeys.add(groupTeamKey);
+    groupPositionKeys.add(groupPositionKey);
+    groupStandings.push({
+      groupId,
+      position,
+      teamId
+    });
+  }
+
+  const matchIds = new Set(metadata.matchIds);
+  const seenMatchIds = new Set<string>();
+  const matchScores: MatchPrediction[] = [];
+
+  for (const matchScore of body.matchScores) {
+    if (!isObjectRecord(matchScore) || !isObjectRecord(matchScore.score)) {
+      return {
+        message: "Prediction match scores are invalid."
+      };
+    }
+
+    const matchId = matchScore.matchId;
+    const { away, home } = matchScore.score;
+
+    if (typeof matchId !== "string" || !matchIds.has(matchId) || !isScoreValue(home) || !isScoreValue(away)) {
+      return {
+        message: "Prediction match scores are invalid."
+      };
+    }
+
+    if (seenMatchIds.has(matchId)) {
+      return {
+        message: "Prediction match scores contain duplicates."
+      };
+    }
+
+    seenMatchIds.add(matchId);
+    matchScores.push({
+      matchId,
+      score: {
+        away,
+        home
+      }
+    });
+  }
+
+  return {
+    groupStandings,
+    matchScores
+  };
+};
+
 const createParticipantSession = async (
   participantRepository: ParticipantRepository,
   participant: ParticipantSummary
@@ -167,7 +312,9 @@ const createParticipantSession = async (
 
 export const buildServer = async (config: ApiConfig = readConfig(), dependencies: BuildServerDependencies = {}) => {
   const shouldCreateStorage =
-    dependencies.roomRepository === undefined && dependencies.participantRepository === undefined;
+    dependencies.roomRepository === undefined &&
+    dependencies.participantRepository === undefined &&
+    dependencies.predictionRepository === undefined;
   const shouldCreateDatabasePool = shouldCreateStorage;
   const databasePool = shouldCreateDatabasePool && config.databaseUrl ? createDatabasePool(config.databaseUrl) : null;
   const inMemoryStore = shouldCreateStorage && !databasePool ? createInMemoryFootballStore() : null;
@@ -183,9 +330,18 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
         ? createInMemoryParticipantRepository(inMemoryStore)
         : null
     : null;
+  const predictionRepository = shouldCreateStorage
+    ? databasePool
+      ? createPredictionRepository(databasePool)
+      : inMemoryStore
+        ? createInMemoryPredictionRepository(inMemoryStore)
+        : null
+    : null;
   const resolvedRoomRepository = dependencies.roomRepository === undefined ? roomRepository : dependencies.roomRepository;
   const resolvedParticipantRepository =
     dependencies.participantRepository === undefined ? participantRepository : dependencies.participantRepository;
+  const resolvedPredictionRepository =
+    dependencies.predictionRepository === undefined ? predictionRepository : dependencies.predictionRepository;
   const app = Fastify({
     logger: config.nodeEnv !== "test"
   });
@@ -371,6 +527,7 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
           displayName: existingParticipant.displayName,
           exactScoreHits: 0,
           id: existingParticipant.id,
+          predictionStatus: "empty",
           totalScore: 0
         };
       } else {
@@ -429,6 +586,134 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
       participants: await resolvedParticipantRepository.listParticipants(request.params.roomId)
     };
   });
+
+  app.get<{ Params: { participantId: string; roomId: string } }>(
+    "/api/rooms/:roomId/predictions/:participantId",
+    async (request, reply) => {
+      if (!resolvedParticipantRepository || !resolvedPredictionRepository) {
+        reply.code(503);
+        return {
+          message: "Prediction storage is not configured."
+        };
+      }
+
+      const participant = await getAuthenticatedParticipant(
+        resolvedParticipantRepository,
+        request.params.roomId,
+        request.headers.authorization
+      );
+
+      if (!participant) {
+        reply.code(401);
+        return {
+          message: "Participant session is required."
+        };
+      }
+
+      const participants = await resolvedParticipantRepository.listParticipants(request.params.roomId);
+      const targetParticipant = participants.find(
+        (currentParticipant) => currentParticipant.id === request.params.participantId
+      );
+
+      if (!targetParticipant) {
+        reply.code(404);
+        return {
+          message: "Participant was not found."
+        };
+      }
+
+      const [prediction, metadata] = await Promise.all([
+        resolvedPredictionRepository.getParticipantPrediction({
+          participantId: targetParticipant.id,
+          roomId: request.params.roomId
+        }),
+        resolvedPredictionRepository.getTournamentMetadata()
+      ]);
+
+      if (!prediction) {
+        reply.code(404);
+        return {
+          message: "Participant was not found."
+        };
+      }
+
+      return {
+        deadlineIso: metadata.deadlineIso,
+        isLocked: isPredictionLocked(metadata.deadlineIso),
+        prediction
+      };
+    }
+  );
+
+  app.put<{ Body: SavePredictionBody; Params: { roomId: string } }>(
+    "/api/rooms/:roomId/predictions/me",
+    async (request, reply) => {
+      if (!resolvedParticipantRepository || !resolvedPredictionRepository) {
+        reply.code(503);
+        return {
+          message: "Prediction storage is not configured."
+        };
+      }
+
+      const participant = await getAuthenticatedParticipant(
+        resolvedParticipantRepository,
+        request.params.roomId,
+        request.headers.authorization
+      );
+
+      if (!participant) {
+        reply.code(401);
+        return {
+          message: "Participant session is required."
+        };
+      }
+
+      const metadata = await resolvedPredictionRepository.getTournamentMetadata();
+
+      if (!metadata.deadlineIso) {
+        reply.code(503);
+        return {
+          message: "Prediction deadline is not configured."
+        };
+      }
+
+      if (isPredictionLocked(metadata.deadlineIso)) {
+        reply.code(423);
+        return {
+          message: "Prediction deadline has passed."
+        };
+      }
+
+      const validationResult = validatePredictionBody(request.body ?? {}, metadata);
+
+      if ("message" in validationResult) {
+        reply.code(400);
+        return {
+          message: validationResult.message
+        };
+      }
+
+      const prediction = await resolvedPredictionRepository.saveParticipantPrediction({
+        groupStandings: validationResult.groupStandings,
+        matchScores: validationResult.matchScores,
+        participantId: participant.id,
+        roomId: request.params.roomId
+      });
+
+      if (!prediction) {
+        reply.code(404);
+        return {
+          message: "Participant was not found."
+        };
+      }
+
+      return {
+        deadlineIso: metadata.deadlineIso,
+        isLocked: false,
+        prediction
+      };
+    }
+  );
 
   app.get("/api/match-history", async () => ({
     results: getMatchResults()

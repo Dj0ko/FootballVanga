@@ -1,3 +1,10 @@
+import type {
+  MatchPrediction as ApiMatchPrediction,
+  ParticipantPrediction,
+  PredictionStatus,
+  SaveParticipantPredictionInput
+} from "@footballvanga/shared";
+
 export type Group = {
   id: string;
   name: string;
@@ -34,7 +41,7 @@ export type Participant = {
   exactScores: number;
 };
 
-export type PredictionStatus = "saved" | "draft" | "empty";
+export type { PredictionStatus };
 
 export type RoomParticipant = Participant & {
   id: string;
@@ -129,6 +136,61 @@ export const groups: Group[] = [
     teams: ["England", "Croatia", "Ghana", "Panama"]
   }
 ];
+
+export const teamIdByName: Record<string, string> = {
+  Algeria: "algeria",
+  Argentina: "argentina",
+  Australia: "australia",
+  Austria: "austria",
+  Belgium: "belgium",
+  "Bosnia and Herzegovina": "bosnia-and-herzegovina",
+  Brazil: "brazil",
+  "Cabo Verde": "cabo-verde",
+  Canada: "canada",
+  Colombia: "colombia",
+  "Congo DR": "congo-dr",
+  "Cote d'Ivoire": "cote-divoire",
+  Croatia: "croatia",
+  Curacao: "curacao",
+  Czechia: "czechia",
+  Ecuador: "ecuador",
+  Egypt: "egypt",
+  England: "england",
+  France: "france",
+  Germany: "germany",
+  Ghana: "ghana",
+  Haiti: "haiti",
+  "IR Iran": "ir-iran",
+  Iraq: "iraq",
+  Japan: "japan",
+  Jordan: "jordan",
+  "Korea Republic": "korea-republic",
+  Mexico: "mexico",
+  Morocco: "morocco",
+  Netherlands: "netherlands",
+  "New Zealand": "new-zealand",
+  Norway: "norway",
+  Panama: "panama",
+  Paraguay: "paraguay",
+  Portugal: "portugal",
+  Qatar: "qatar",
+  "Saudi Arabia": "saudi-arabia",
+  Scotland: "scotland",
+  Senegal: "senegal",
+  "South Africa": "south-africa",
+  Spain: "spain",
+  Sweden: "sweden",
+  Switzerland: "switzerland",
+  Tunisia: "tunisia",
+  Turkiye: "turkiye",
+  "United States": "united-states",
+  Uruguay: "uruguay",
+  Uzbekistan: "uzbekistan"
+};
+
+export const teamNameById: Record<string, string> = Object.fromEntries(
+  Object.entries(teamIdByName).map(([teamName, teamId]) => [teamId, teamName])
+);
 
 type MatchFixture = Omit<Match, "startsAtIso">;
 
@@ -871,6 +933,129 @@ export const createEmptyPredictionSnapshot = (): PredictionSnapshot => ({
   >,
   savedGroupIds: []
 });
+
+const getGroupMatches = (groupId: string) => matches.filter((match) => match.id.startsWith(`${groupId}-`));
+
+export const getCompleteGroupIds = (snapshot: PredictionSnapshot) =>
+  groups
+    .filter((group) => {
+      const teams = snapshot.groupOrders[group.id] ?? [];
+      const hasCompleteTeamOrder =
+        teams.length === group.teams.length && group.teams.every((team) => teams.includes(team));
+      const hasCompleteScores = getGroupMatches(group.id).every((match) => {
+        const score = snapshot.matchScores[match.id];
+
+        return Boolean(score && score.home !== "" && score.away !== "");
+      });
+
+      return hasCompleteTeamOrder && hasCompleteScores;
+    })
+    .map((group) => group.id);
+
+export const createPredictionSnapshotFromParticipantPrediction = (
+  prediction: ParticipantPrediction
+): PredictionSnapshot => {
+  const snapshot = createEmptyPredictionSnapshot();
+  const standingsByGroupId = new Map<string, Array<{ position: number; teamName: string }>>();
+
+  for (const standing of prediction.groupStandings) {
+    const teamName = teamNameById[standing.teamId];
+
+    if (!teamName) {
+      continue;
+    }
+
+    standingsByGroupId.set(standing.groupId, [
+      ...(standingsByGroupId.get(standing.groupId) ?? []),
+      {
+        position: standing.position,
+        teamName
+      }
+    ]);
+  }
+
+  for (const group of groups) {
+    const predictedStandings = standingsByGroupId
+      .get(group.id)
+      ?.sort((leftStanding, rightStanding) => leftStanding.position - rightStanding.position);
+
+    if (!predictedStandings?.length) {
+      continue;
+    }
+
+    const predictedTeams = predictedStandings.map((standing) => standing.teamName);
+    const missingTeams = group.teams.filter((team) => !predictedTeams.includes(team));
+
+    snapshot.groupOrders[group.id] = [...predictedTeams, ...missingTeams];
+  }
+
+  for (const matchScore of prediction.matchScores) {
+    snapshot.matchScores[matchScore.matchId] = {
+      away: matchScore.score.away,
+      home: matchScore.score.home
+    };
+  }
+
+  snapshot.savedGroupIds = getCompleteGroupIds(snapshot);
+
+  return snapshot;
+};
+
+export const createSavePredictionInput = (
+  groupOrders: Record<string, string[]>,
+  matchScores: Record<string, MatchScore>
+): SaveParticipantPredictionInput => {
+  const groupStandings = groups.flatMap((group) =>
+    (groupOrders[group.id] ?? group.teams).flatMap((team, index) => {
+      const teamId = teamIdByName[team];
+
+      return teamId
+        ? [
+            {
+              groupId: group.id,
+              position: index + 1,
+              teamId
+            }
+          ]
+        : [];
+    })
+  );
+  const apiMatchScores: ApiMatchPrediction[] = matches.flatMap((match) => {
+    const score = matchScores[match.id];
+
+    if (!score || score.home === "" || score.away === "") {
+      return [];
+    }
+
+    return [
+      {
+        matchId: match.id,
+        score: {
+          away: score.away,
+          home: score.home
+        }
+      }
+    ];
+  });
+
+  return {
+    groupStandings,
+    matchScores: apiMatchScores
+  };
+};
+
+export const getPredictionStatusFromParticipantPrediction = (
+  prediction: ParticipantPrediction
+): PredictionStatus => {
+  if (!prediction.submittedAtIso) {
+    return "empty";
+  }
+
+  return prediction.groupStandings.length === groups.reduce((total, group) => total + group.teams.length, 0) &&
+    prediction.matchScores.length === matches.length
+    ? "saved"
+    : "draft";
+};
 
 const createMockPredictionSnapshot = (seed: number): PredictionSnapshot => ({
   groupOrders: Object.fromEntries(

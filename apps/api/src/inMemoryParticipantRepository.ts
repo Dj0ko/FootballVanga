@@ -4,15 +4,25 @@ import type { ParticipantSummary } from "@footballvanga/shared";
 
 import type { ParticipantRepository, ParticipantRecord } from "./participantRepository.js";
 import type { InMemoryFootballStore, StoredParticipant } from "./inMemoryRoomRepository.js";
+import { getPredictionStatus } from "./tournamentMetadata.js";
 
 const normalizeDisplayName = (displayName: string) => displayName.toLocaleLowerCase("ru-RU");
 
-const toParticipantSummary = (participant: StoredParticipant): ParticipantSummary => ({
-  displayName: participant.displayName,
-  exactScoreHits: participant.exactScoreHits,
-  id: participant.id,
-  totalScore: participant.totalScore
-});
+const toParticipantSummary = (store: InMemoryFootballStore, participant: StoredParticipant): ParticipantSummary => {
+  const prediction = store.predictions.get(participant.id);
+
+  return {
+    displayName: participant.displayName,
+    exactScoreHits: participant.exactScoreHits,
+    id: participant.id,
+    predictionStatus: getPredictionStatus({
+      groupStandingsCount: prediction?.groupStandings.length ?? 0,
+      matchScoresCount: prediction?.matchScores.length ?? 0,
+      submittedAtIso: prediction?.submittedAtIso ?? null
+    }),
+    totalScore: participant.totalScore
+  };
+};
 
 const toParticipantRecord = (participant: StoredParticipant): ParticipantRecord => ({
   codeHash: participant.codeHash,
@@ -25,7 +35,7 @@ export const createInMemoryParticipantRepository = (store: InMemoryFootballStore
     Array.from(store.participants.values())
       .filter((participant) => participant.roomId === roomId)
       .sort((leftParticipant, rightParticipant) => leftParticipant.createdOrder - rightParticipant.createdOrder)
-      .map(toParticipantSummary);
+      .map((participant) => toParticipantSummary(store, participant));
 
   const createParticipant: ParticipantRepository["createParticipant"] = async ({ codeHash, displayName, roomId }) => {
     if (!store.rooms.has(roomId)) {
@@ -55,7 +65,7 @@ export const createInMemoryParticipantRepository = (store: InMemoryFootballStore
     store.nextParticipantOrder += 1;
     store.participants.set(participant.id, participant);
 
-    return toParticipantSummary(participant);
+    return toParticipantSummary(store, participant);
   };
 
   const createParticipantSession: ParticipantRepository["createParticipantSession"] = async ({
@@ -103,7 +113,7 @@ export const createInMemoryParticipantRepository = (store: InMemoryFootballStore
 
     session.lastUsedAtIso = new Date().toISOString();
 
-    return toParticipantSummary(participant);
+    return toParticipantSummary(store, participant);
   };
 
   return {

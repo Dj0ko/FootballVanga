@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import type { ParticipantSession } from "@footballvanga/shared";
+import type { ParticipantSession, PredictionStatus } from "@footballvanga/shared";
 
 import {
   ApiError,
@@ -162,6 +162,28 @@ export default function App() {
     setScreen("workspace");
   };
 
+  const updateParticipantPredictionStatus = useCallback(
+    (participantId: string, predictionStatus: PredictionStatus) => {
+      if (!activeRoom) {
+        return;
+      }
+
+      setParticipantsByRoomId((currentParticipantsByRoomId) => ({
+        ...currentParticipantsByRoomId,
+        [activeRoom.id]: (currentParticipantsByRoomId[activeRoom.id] ?? []).map((participant) =>
+          participant.id === participantId ? { ...participant, predictionStatus } : participant
+        )
+      }));
+      setCurrentParticipant((participant) =>
+        participant?.id === participantId ? { ...participant, predictionStatus } : participant
+      );
+      setViewedParticipant((participant) =>
+        participant?.id === participantId ? { ...participant, predictionStatus } : participant
+      );
+    },
+    [activeRoom]
+  );
+
   if (isAdminResultsRoute) {
     return <AdminResultsScreen />;
   }
@@ -223,8 +245,12 @@ export default function App() {
     return (
       <WorkspaceScreen
         isReadOnly={isReadOnly}
+        onParticipantPredictionStatusChange={updateParticipantPredictionStatus}
+        participantId={viewedParticipant.id}
         participantName={viewedParticipant.name}
+        roomId={activeRoom.id}
         roomName={activeRoom.name}
+        sessionToken={currentParticipantSession.token}
         onBackToLobby={() => setScreen("roomLobby")}
       />
     );

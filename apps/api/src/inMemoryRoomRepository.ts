@@ -1,10 +1,9 @@
 import { randomUUID } from "node:crypto";
 
-import type { RoomStatus, RoomSummary } from "@footballvanga/shared";
+import type { GroupStandingPrediction, MatchPrediction, RoomStatus, RoomSummary } from "@footballvanga/shared";
 
 import type { RoomRepository } from "./roomRepository.js";
-
-const DEFAULT_DEADLINE_ISO = "2026-06-11T19:00:00.000Z";
+import { DEFAULT_TOURNAMENT_DEADLINE_ISO } from "./tournamentMetadata.js";
 
 type StoredRoom = {
   createdOrder: number;
@@ -26,6 +25,15 @@ export type StoredParticipant = {
   totalScore: number;
 };
 
+export type StoredParticipantPrediction = {
+  groupStandings: GroupStandingPrediction[];
+  matchScores: MatchPrediction[];
+  participantId: string;
+  roomId: string;
+  submittedAtIso: string;
+  updatedAtIso: string;
+};
+
 export type StoredParticipantSession = {
   expiresAtIso: string;
   lastUsedAtIso: string;
@@ -40,6 +48,7 @@ export type InMemoryFootballStore = {
   nextRoomOrder: number;
   participantSessions: Map<string, StoredParticipantSession>;
   participants: Map<string, StoredParticipant>;
+  predictions: Map<string, StoredParticipantPrediction>;
   rooms: Map<string, StoredRoom>;
 };
 
@@ -48,11 +57,12 @@ export const createInMemoryFootballStore = (
     deadlineIso?: string;
   } = {}
 ): InMemoryFootballStore => ({
-  deadlineIso: options.deadlineIso ?? DEFAULT_DEADLINE_ISO,
+  deadlineIso: options.deadlineIso ?? DEFAULT_TOURNAMENT_DEADLINE_ISO,
   nextParticipantOrder: 0,
   nextRoomOrder: 0,
   participantSessions: new Map(),
   participants: new Map(),
+  predictions: new Map(),
   rooms: new Map()
 });
 

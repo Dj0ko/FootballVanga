@@ -1,4 +1,4 @@
-import type { ParticipantSession } from "@footballvanga/shared";
+import type { ParticipantSession, PredictionStatus } from "@footballvanga/shared";
 
 import type { CreateRoomInput, RoomParticipant, RoomSummary } from "../data/mockFootball";
 
@@ -27,6 +27,7 @@ type ApiParticipantSummary = {
   displayName: string;
   exactScoreHits: number;
   id: string;
+  predictionStatus: PredictionStatus;
   totalScore: number;
 };
 
@@ -71,10 +72,10 @@ const toRoomParticipant = (participant: ApiParticipantSummary): RoomParticipant 
   id: participant.id,
   name: participant.displayName,
   points: participant.totalScore,
-  predictionStatus: "empty"
+  predictionStatus: participant.predictionStatus
 });
 
-const requestJson = async <ResponseBody>(path: string, init?: RequestInit) => {
+export const requestJson = async <ResponseBody>(path: string, init?: RequestInit) => {
   const response = await fetch(path, {
     credentials: "include",
     ...init,

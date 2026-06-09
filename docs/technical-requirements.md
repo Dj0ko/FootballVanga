@@ -276,7 +276,7 @@ npm run admin:session-secret
 2. Seed data for World Cup 2026 groups, teams, and group-stage matches. Completed as seed migration data.
 3. Real room creation, public room list, room entry, and room password hashes. Completed as API-backed room endpoints with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 4. Participant display-name entry, participant code hashes, and participant session ownership. Completed as API-backed participant entry with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
-5. Prediction persistence for group standings and match scores, with backend deadline enforcement.
+5. Prediction persistence for group standings and match scores, with backend deadline enforcement. Completed as API-backed prediction reads/writes with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 6. PostgreSQL-backed match results from the hidden admin result-entry screen.
 7. Scoring recalculation and room leaderboard.
 8. Deployment hardening on the VPS.

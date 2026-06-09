@@ -130,6 +130,7 @@ test("participant entry creates participant sessions without exposing hashes", a
         displayName: input.displayName,
         exactScoreHits: 0,
         id: participant.id,
+        predictionStatus: "empty",
         totalScore: 0
       };
     },
@@ -156,6 +157,7 @@ test("participant entry creates participant sessions without exposing hashes", a
             displayName: participant.displayName,
             exactScoreHits: 0,
             id: participant.id,
+            predictionStatus: "empty",
             totalScore: 0
           }
         : null;
@@ -165,6 +167,7 @@ test("participant entry creates participant sessions without exposing hashes", a
         displayName: participant.displayName,
         exactScoreHits: 0,
         id: participant.id,
+        predictionStatus: "empty",
         totalScore: 0
       }))
   };

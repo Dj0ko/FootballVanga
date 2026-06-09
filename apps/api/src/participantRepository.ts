@@ -1,4 +1,4 @@
-import type { ParticipantSummary } from "@footballvanga/shared";
+import type { ParticipantSummary, PredictionStatus } from "@footballvanga/shared";
 
 import type { DatabasePool } from "./database.js";
 
@@ -30,6 +30,7 @@ type ParticipantRow = {
   display_name: string;
   exact_score_hits: number | null;
   id: string;
+  prediction_status: PredictionStatus;
   total_score: number | null;
 };
 
@@ -37,8 +38,27 @@ const toParticipantSummary = (row: ParticipantRow): ParticipantSummary => ({
   displayName: row.display_name,
   exactScoreHits: row.exact_score_hits ?? 0,
   id: row.id,
+  predictionStatus: row.prediction_status,
   totalScore: row.total_score ?? 0
 });
+
+const participantPredictionStatusSql = `
+  CASE
+    WHEN participants.prediction_submitted_at IS NULL THEN 'empty'
+    WHEN (
+      SELECT COUNT(*)
+      FROM participant_group_predictions
+      WHERE participant_group_predictions.participant_id = participants.id
+    ) = (SELECT COUNT(*) FROM teams)
+      AND (
+        SELECT COUNT(*)
+        FROM participant_match_predictions
+        WHERE participant_match_predictions.participant_id = participants.id
+      ) = (SELECT COUNT(*) FROM matches)
+      THEN 'saved'
+    ELSE 'draft'
+  END AS prediction_status
+`;
 
 export const createParticipantRepository = (pool: DatabasePool): ParticipantRepository => {
   const listParticipants = async (roomId: string) => {
@@ -48,7 +68,8 @@ export const createParticipantRepository = (pool: DatabasePool): ParticipantRepo
           participants.id,
           participants.display_name,
           COALESCE(score_snapshots.total_points, 0) AS total_score,
-          COALESCE(score_snapshots.exact_score_hits, 0) AS exact_score_hits
+          COALESCE(score_snapshots.exact_score_hits, 0) AS exact_score_hits,
+          ${participantPredictionStatusSql}
         FROM participants
         LEFT JOIN score_snapshots ON score_snapshots.participant_id = participants.id
         WHERE participants.room_id = $1
@@ -65,7 +86,7 @@ export const createParticipantRepository = (pool: DatabasePool): ParticipantRepo
       `
         INSERT INTO participants (room_id, display_name, code_hash)
         VALUES ($1, $2, $3)
-        RETURNING id, display_name, 0 AS total_score, 0 AS exact_score_hits
+        RETURNING id, display_name, 0 AS total_score, 0 AS exact_score_hits, 'empty' AS prediction_status
       `,
       [roomId, displayName, codeHash]
     );
@@ -125,7 +146,8 @@ export const createParticipantRepository = (pool: DatabasePool): ParticipantRepo
           participants.id,
           participants.display_name,
           COALESCE(score_snapshots.total_points, 0) AS total_score,
-          COALESCE(score_snapshots.exact_score_hits, 0) AS exact_score_hits
+          COALESCE(score_snapshots.exact_score_hits, 0) AS exact_score_hits,
+          ${participantPredictionStatusSql}
         FROM participant_sessions
         JOIN participants ON participants.id = participant_sessions.participant_id
         LEFT JOIN score_snapshots ON score_snapshots.participant_id = participants.id

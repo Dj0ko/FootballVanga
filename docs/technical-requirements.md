@@ -54,7 +54,8 @@ The SPA is responsible for:
 - Prediction editing before deadline.
 - Read-only prediction views.
 - Leaderboard views.
-- Admin/operator result entry if automatic import is not ready.
+- Global tournament match history/results view on the rooms screen.
+- Admin/operator result entry separated from participant room access.
 
 The frontend must never be trusted for permission checks. It can hide edit controls, but the API must enforce ownership and deadline rules.
 
@@ -65,11 +66,12 @@ The API is responsible for:
 - Room access validation.
 - Participant session ownership.
 - Prediction writes.
-- Deadline enforcement.
+- Deadline calculation and enforcement from tournament seed data.
 - Scoring.
 - Result storage.
 - Manual result entry.
-- Future result import polling.
+- Operator/admin authorization for result writes.
+- Scheduled result import polling.
 
 ### Database
 
@@ -117,9 +119,13 @@ Participant edit tokens must be stored as hashes if persisted. The plaintext tok
 - A participant display name plus participant code can establish a participant session.
 - A participant session grants edit rights only for that participant.
 - Other participant predictions are visible but read-only.
-- Prediction writes are rejected after the room deadline.
+- Completed match results are visible on the rooms screen and are not scoped to a room.
+- Match result writes require operator/admin authorization and must not be allowed through room or participant sessions.
+- Prediction writes are rejected at or after the server-calculated tournament deadline.
 - Display names are unique within a room.
 - A direct room link does not reveal room contents without the room password / join code.
+
+For Version 1, the tournament prediction deadline is calculated by the backend from the earliest group-stage `matches.starts_at` value. Room creators do not manually configure separate room deadlines.
 
 ## Scoring Rules
 
@@ -148,9 +154,17 @@ GET  /api/rooms/:roomId/participants
 GET  /api/rooms/:roomId/predictions
 PUT  /api/rooms/:roomId/predictions/me
 GET  /api/rooms/:roomId/leaderboard
+GET  /api/match-history
+GET  /api/admin/session
+POST /api/admin/login
+POST /api/admin/logout
+PUT  /api/admin/matches/:matchId/result
+POST /api/admin/scoring/recalculate
 ```
 
-Admin/operator endpoints can be added once the MVP data model is in place.
+Admin/operator endpoints must use operator-only authorization. Room passwords, participant codes, and participant sessions must not grant access to result writes.
+
+The first admin implementation can use a single operator password hash from environment variables plus an HTTP-only admin session cookie. Result writes may be in-memory during scaffold work, but production result storage belongs in PostgreSQL.
 
 ## Local Development
 
@@ -201,11 +215,25 @@ NODE_ENV
 HOST
 PORT
 DATABASE_URL
+ADMIN_PASSWORD_HASH
+ADMIN_SESSION_SECRET
 ```
 
 Local defaults are documented in `apps/api/.env.example`.
 
 Production values belong in `/etc/footballvanga.env` on the server and must not be committed.
+
+Generate an admin password hash with:
+
+```bash
+npm run admin:hash-password
+```
+
+Generate an admin session secret with:
+
+```bash
+npm run admin:session-secret
+```
 
 ## MVP Implementation Order
 
@@ -213,9 +241,11 @@ Production values belong in `/etc/footballvanga.env` on the server and must not 
 2. Room creation and entry.
 3. Participant creation and session ownership.
 4. Tournament seed data for group stage.
-5. Prediction save and edit before deadline.
-6. Room prediction visibility.
-7. Manual result entry.
-8. Scoring and leaderboard.
-9. Deployment to VPS.
-10. Automatic result import.
+5. Backend-calculated tournament deadline.
+6. Prediction save and edit before deadline.
+7. Room prediction visibility.
+8. Rooms screen match history/results visibility.
+9. Operator-only manual result entry.
+10. Scoring and leaderboard.
+11. Deployment to VPS.
+12. Scheduled automatic result import.

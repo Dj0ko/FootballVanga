@@ -4,7 +4,7 @@
 
 FootballVanga is a SPA prediction game for football tournament group stages.
 
-Users join password-protected rooms, create a guest display name, submit predictions for group standings and match scores, and compete on a shared leaderboard. Predictions remain editable until a configured tournament deadline. After the deadline, predictions are locked and scoring updates as real match results and final group standings become available.
+Users join password-protected rooms, create a guest display name, submit predictions for group standings and match scores, and compete on a shared leaderboard. Predictions remain editable until the server-calculated tournament deadline before the first group-stage match. After the deadline, predictions are locked and scoring updates as real match results and final group standings become available.
 
 ## Goals
 
@@ -37,6 +37,8 @@ A guest participant can:
 - View all participant predictions in rooms they can access.
 - Edit only their own predictions.
 - View room leaderboard and intermediate scoring.
+- View completed match results/history on the rooms screen.
+- Cannot create, edit, or correct official match results.
 
 ### Room Creator
 
@@ -45,7 +47,7 @@ A room creator can:
 - Create a prediction room.
 - Set the room name.
 - Set the room password / join code.
-- Set the prediction deadline.
+- Use the shared tournament prediction deadline calculated by the server.
 - Share room access details with participants.
 
 Room creation should be available to users, but should include basic spam prevention.
@@ -58,6 +60,8 @@ An operator can:
 - Update or verify real match results manually.
 - Trigger recalculation if automatic result import fails.
 - Disable abusive rooms if this becomes necessary.
+- Use an operator-only result management flow; room participant access must not grant result editing rights.
+- Open a hidden result-entry screen such as `/admin/results` after backend password verification.
 
 ## Room Model
 
@@ -65,7 +69,7 @@ Each room has:
 
 - Name.
 - Password / join code.
-- Prediction deadline.
+- Prediction deadline derived from the tournament schedule.
 - Tournament configuration.
 - List of participants.
 - Participant predictions.
@@ -77,9 +81,11 @@ Participant predictions are isolated by ownership. A participant can view other 
 
 ## Room Access And Discovery
 
-Version 1 should not require a public room directory.
+Version 1 can show a common room list, but visible room cards do not grant access to room contents.
 
-Users can enter a room from the start page by using the room access details they received from the room creator. A direct room link may also be supported, but it should only open the room entry screen. Room contents, participant predictions, and leaderboard data remain hidden until the correct room password / join code is entered.
+Users can enter a room from the start page by selecting a visible room card or by using room access details they received from the room creator. A direct room link may also be supported, but it should only open the room entry screen. Room contents, participant names, participant predictions, and leaderboard data remain hidden until the correct room password / join code is entered.
+
+The rooms screen can show global tournament match results/history. This result history is not specific to a room and does not reveal room contents.
 
 In the guest model, a person is considered a room participant after successfully entering the room password, creating a unique display name, and setting a participant code. A person who only has a direct room link, but does not have the room password, should not be able to view room contents.
 
@@ -128,15 +134,17 @@ Entering another participant's display name without that participant's code must
 11. User saves predictions.
 12. Until the room deadline, user can return and edit their own predictions.
 13. After the deadline, predictions become locked.
-14. User can view the room leaderboard and other participants' predictions.
+14. User can view the room leaderboard and other participants' predictions after entering the room.
+15. User can view completed match history from the rooms screen.
 
 ## Deadline Rules
 
 - Each room has a prediction deadline.
-- The deadline is before the tournament starts.
+- In Version 1, the backend calculates the deadline from the earliest group-stage match kickoff.
+- The deadline is before or at the start of the first group-stage match.
 - Predictions are editable until the deadline.
 - Predictions become read-only after the deadline.
-- Version 1 uses one global deadline per room, not per-match deadlines.
+- Version 1 uses one shared tournament deadline, not per-room manual deadlines or per-match deadlines.
 
 ## Tournament Scope
 
@@ -206,7 +214,11 @@ Fallback behavior:
 - An operator can enter or correct results manually.
 - An operator can trigger recalculation manually.
 
-The exact data source for official match results is not chosen yet and must be evaluated before implementation.
+Result editing must be operator-only. Room creators, guest participants, room passwords, and participant codes do not grant permission to create, edit, or correct official results.
+
+The server should support scheduled result checks against an external source, for example a few times per day. The exact data source and schedule are not chosen yet and must be evaluated before implementation.
+
+Manual result entry should remain available as an operator fallback even after automatic imports are added.
 
 ## Visibility Rules
 
@@ -220,6 +232,8 @@ Within a room, participants can see:
 Predictions are not hidden before the deadline in Version 1.
 
 Visible predictions are not editable by other participants. Only the prediction owner can edit their own prediction before the deadline.
+
+Completed group-stage match results/history is visible on the rooms screen, outside any specific room. Official match results are not editable by room participants. Only an operator/admin flow can update result data.
 
 ## Room Creation And Spam Prevention
 
@@ -250,9 +264,10 @@ Expected UI areas:
 - Match score prediction interface.
 - Save / edit state.
 - Locked prediction state.
+- Global match history/results view on the rooms screen.
 - Room leaderboard.
 - Participant prediction comparison view.
-- Admin or operator result management view, if automatic import is not ready for Version 1.
+- Admin or operator result management view that is separate from participant room access.
 
 Detailed visual design will be decided during application development.
 
@@ -272,6 +287,6 @@ Avoid introducing additional infrastructure unless there is a clear product need
 
 - Should room creation itself require an operator-controlled creation code, or is rate limiting enough for Version 1?
 - What external result source should be used for automatic score importing?
-- Should automatic result importing be included in Version 1, or should Version 1 ship with manual result entry and add importing later?
+- What exact schedule should the server use for automatic result checks?
 - Should a participant be able to delete their prediction before the deadline?
 - Should leaderboard ties after exact score count stay tied, or use a second tie-breaker?

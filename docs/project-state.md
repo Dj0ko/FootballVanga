@@ -14,7 +14,12 @@ The agreed Version 1 product scope:
 - Participants can view other predictions, but can edit only their own prediction.
 - Predictions remain editable until a single deadline before the tournament starts.
 - The current UI derives that deadline from the first group-stage match kickoff.
+- The backend should calculate the same Version 1 deadline from the earliest group-stage match kickoff.
 - Version 1 covers only the group stage.
+- Rooms can be visible in a common room list, but room contents remain hidden until the room password is accepted.
+- The rooms screen after welcome includes the tournament match history/results view for completed games.
+- Match results are visible on the rooms screen, but result editing is operator-only.
+- Operator-only manual result entry should use the hidden `/admin/results` screen.
 - Rules explanation should live in a separate UI window later, not on the welcome screen.
 
 ## Current Implementation
@@ -37,6 +42,7 @@ The frontend currently has:
 - The current mocked prediction deadline is derived from the earliest World Cup 2026 group-stage match kickoff in `matches`.
 - A `Продолжить` button that opens the mocked rooms screen.
 - A mocked rooms screen shown after welcome.
+- A mocked tournament match history/results view on the rooms screen.
 - A room zero state when there are no rooms:
   - `Комнат еще нет`
   - `Откройте первую и зовите свою футбольную компанию.`
@@ -67,17 +73,37 @@ The frontend currently has:
 - Overview cards show whether each group is still a draft or saved.
 - Overview cards color the `Счета x/6` counter by completion: red for 0-2, yellow for 3-5, green for 6.
 - Team rows show SVG flags imported from the MIT-licensed `flag-icons` package.
+- A hidden mocked admin result-entry screen is available at `/admin/results`.
+- The admin screen checks backend admin session status, logs in through `POST /api/admin/login`, and writes scores through `PUT /api/admin/matches/:matchId/result`.
 
 The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts`. It does not call the backend yet.
+
+Exception: the hidden `/admin/results` screen already calls the backend admin scaffold.
+
+The backend currently has:
+
+- `GET /health`
+- `GET /api/meta`
+- `GET /api/rooms`
+- `GET /api/match-history`
+- `GET /api/admin/session`
+- `POST /api/admin/login`
+- `POST /api/admin/logout`
+- `PUT /api/admin/matches/:matchId/result`
+- `POST /api/admin/scoring/recalculate`
+
+Backend result storage is temporary in-memory scaffold state until PostgreSQL schema and migrations are implemented.
 
 World Cup 2026 group data is now used by the mocked prediction screen. Group-stage fixtures for future seed data are documented in `docs/world-cup-2026-data.md`.
 
 Current frontend organization:
 
 - `apps/web/src/App.tsx` coordinates the current screen state.
+- `apps/web/src/screens/admin-results` contains the hidden operator result-entry screen and its CSS module.
 - `apps/web/src/screens/welcome` contains the welcome screen and its CSS module.
 - `apps/web/src/screens/rooms` contains the rooms screen and its CSS module.
 - `apps/web/src/screens/rooms/components/create-room-form` contains the room creation form and its CSS module.
+- `apps/web/src/screens/rooms/components/match-results-history` contains the tournament match history/results view and its CSS module.
 - `apps/web/src/screens/rooms/components/rooms-leaderboard` contains the all-rooms leaderboard sidebar and its CSS module.
 - `apps/web/src/screens/room-entry` contains the mocked room password and participant entry flow.
 - `apps/web/src/screens/room-lobby` contains the room lobby screen and its CSS module.
@@ -138,8 +164,21 @@ Current rooms screen decisions:
 - The mocked form adds the new room to the local room list for now.
 - Existing rooms are shown as compact room cards with participant count, locked-room status, and enter action.
 - Room card enter actions should use the green primary style, not a red/destructive style.
+- The rooms screen shows completed group-stage match results/history below the room list.
 - The right sidebar should be titled `ТОП-5 лидеров рейтинга` and show a mocked top-5 participant leaderboard across all rooms.
 - The all-rooms leaderboard ranks by total points, then exact score count as a tiebreaker.
+
+### Admin Result Entry
+
+Current admin result-entry decisions:
+
+- Manual result entry lives at the hidden route `/admin/results`.
+- The admin route is not linked from normal participant screens.
+- Admin login uses an operator password checked by the backend.
+- The password hash belongs in `ADMIN_PASSWORD_HASH`, not in frontend code.
+- Admin sessions use an HTTP-only cookie signed with `ADMIN_SESSION_SECRET`.
+- Normal room passwords and participant codes must not grant access to result writes.
+- The current backend result writes are in-memory scaffold behavior until the database exists.
 
 ### Room Lobby Screen
 
@@ -182,6 +221,7 @@ Current room lobby decisions:
 - The current participant session opens the editable `Мой прогноз` workspace.
 - Other participant rows open the same prediction workspace in read-only mode.
 - The `Мой прогноз` action opens the mocked group prediction screen for now.
+- Result editing must not be available to normal room participants; it belongs to an operator/admin flow.
 
 ### My Prediction Screen
 
@@ -295,5 +335,8 @@ Likely next backend work:
 
 - Database schema and migrations.
 - Room creation and entry endpoints.
+- Backend-calculated tournament deadline from the first group-stage kickoff.
 - Participant session ownership.
 - Prediction persistence.
+- Replace in-memory admin result storage with PostgreSQL-backed result entry/correction.
+- Scheduled result sync against an external source, with exact source and schedule to be chosen later.

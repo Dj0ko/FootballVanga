@@ -1,0 +1,165 @@
+.panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #d9dfd4;
+  border-radius: 8px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #dfe5dc;
+  padding-bottom: 14px;
+  color: #1f5f3e;
+}
+
+.header p {
+  margin-bottom: 4px;
+  color: #68766d;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.header h2 {
+  margin-bottom: 0;
+  font-size: 1.15rem;
+}
+
+.resultList {
+  display: grid;
+  max-height: 430px;
+  overflow-y: auto;
+}
+
+.resultRow {
+  display: grid;
+  gap: 8px;
+  border-bottom: 1px solid #e2e8df;
+  padding: 13px 0;
+}
+
+.resultRow:first-child {
+  padding-top: 0;
+}
+
+.resultRow:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.metaLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #68766d;
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.metaLine span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scoreLine {
+  display: grid;
+  min-height: 42px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.team {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: #405047;
+  font-weight: 800;
+}
+
+.team:last-child {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.team span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.winner {
+  color: #16211b;
+  font-weight: 900;
+}
+
+.flag {
+  display: block;
+  width: 26px;
+  height: 18px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(22, 33, 27, 0.14);
+}
+
+.finalScore {
+  display: grid;
+  min-width: 66px;
+  min-height: 38px;
+  place-items: center;
+  border-radius: 8px;
+  background: #207d4f;
+  color: #ffffff;
+  font-size: 1.08rem;
+}
+
+.venue {
+  overflow: hidden;
+  color: #68766d;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emptyState {
+  display: grid;
+  gap: 6px;
+  padding: 18px 0 4px;
+  color: #68766d;
+}
+
+.emptyState strong {
+  color: #16211b;
+}
+
+@media (max-width: 620px) {
+  .metaLine {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .scoreLine {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .team:last-child {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .finalScore {
+    width: 66px;
+  }
+}

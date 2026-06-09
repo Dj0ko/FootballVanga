@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "admin:hash-password": "node scripts/hash-admin-password.mjs",
+    "admin:session-secret": "node scripts/generate-admin-session-secret.mjs",
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",

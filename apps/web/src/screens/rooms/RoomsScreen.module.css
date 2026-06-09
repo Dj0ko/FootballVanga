@@ -77,6 +77,12 @@
   gap: 18px;
 }
 
+.mainColumn {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+}
+
 .panel {
   border: 1px solid #d9dfd4;
   border-radius: 8px;

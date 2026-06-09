@@ -51,6 +51,28 @@ Run type checks:
 npm run typecheck
 ```
 
+## Admin Result Entry
+
+Manual result entry is available through the hidden admin route:
+
+```text
+/admin/results
+```
+
+Admin access is checked by the API. Do not commit admin passwords. Generate server env values with:
+
+```bash
+npm run admin:hash-password
+npm run admin:session-secret
+```
+
+Production values belong in `/etc/footballvanga.env`:
+
+```text
+ADMIN_PASSWORD_HASH
+ADMIN_SESSION_SECRET
+```
+
 ## Production Direction
 
 The project is intended to deploy to the existing VPS stack:

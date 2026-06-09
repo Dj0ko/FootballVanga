@@ -1,0 +1,286 @@
+.shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.titleBlock {
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: #277a50;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.titleBlock h1,
+.authPanel h1 {
+  margin-bottom: 0;
+  color: #16211b;
+  line-height: 1;
+}
+
+.titleBlock h1 {
+  overflow: hidden;
+  font-size: 2rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.authPanel {
+  display: grid;
+  width: min(420px, 100%);
+  gap: 14px;
+  margin: 72px auto 0;
+  border: 1px solid #d9dfd4;
+  border-radius: 8px;
+  padding: 22px;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.authPanel svg {
+  color: #207d4f;
+}
+
+.loginForm {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+  color: #405047;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.primaryButton,
+.secondaryButton,
+.recalculateButton,
+.saveButton {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-weight: 900;
+}
+
+.primaryButton,
+.recalculateButton {
+  border: 0;
+  background: #207d4f;
+  color: #ffffff;
+}
+
+.secondaryButton {
+  border: 1px solid #d9dfd4;
+  background: #ffffff;
+  color: #405047;
+}
+
+.saveButton {
+  border: 0;
+  background: #f2b84b;
+  color: #1d1b14;
+}
+
+.primaryButton:disabled,
+.recalculateButton:disabled,
+.saveButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.toolbar,
+.resultsPanel {
+  border: 1px solid #d9dfd4;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) auto;
+  align-items: end;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 16px;
+}
+
+.resultsPanel {
+  display: grid;
+  overflow: hidden;
+}
+
+.matchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px 164px;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid #e2e8df;
+  padding: 14px 16px;
+}
+
+.matchRow:last-child {
+  border-bottom: 0;
+}
+
+.matchInfo {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.matchMeta,
+.venue {
+  overflow: hidden;
+  color: #68766d;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.venue {
+  font-weight: 800;
+  text-transform: none;
+}
+
+.matchInfo strong {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  color: #16211b;
+  font-size: 0.94rem;
+}
+
+.matchInfo strong > span:nth-child(2) {
+  color: #68766d;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.teamLabel {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.teamLabel:last-child {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.teamLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flag {
+  display: block;
+  width: 26px;
+  height: 18px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(22, 33, 27, 0.14);
+}
+
+.scoreEditor {
+  display: grid;
+  grid-template-columns: 52px 14px 52px;
+  align-items: center;
+  gap: 7px;
+}
+
+.scoreEditor input {
+  min-height: 40px;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.scoreEditor span {
+  color: #405047;
+  font-weight: 900;
+  text-align: center;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: end;
+  gap: 6px;
+}
+
+.savedBadge {
+  border: 1px solid #d9dfd4;
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: #207d4f;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.error,
+.status {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.error {
+  background: #fee9e8;
+  color: #a33a33;
+}
+
+.status {
+  background: #e8f5ee;
+  color: #207d4f;
+}
+
+@media (max-width: 820px) {
+  .shell {
+    padding: 16px;
+  }
+
+  .topbar,
+  .toolbar,
+  .matchRow {
+    grid-template-columns: 1fr;
+  }
+
+  .titleBlock h1 {
+    white-space: normal;
+  }
+
+  .secondaryButton,
+  .recalculateButton,
+  .saveButton {
+    width: 100%;
+  }
+
+  .actions {
+    justify-items: stretch;
+  }
+}

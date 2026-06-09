@@ -1,4 +1,6 @@
 export type ApiConfig = {
+  adminPasswordHash?: string;
+  adminSessionSecret?: string;
   nodeEnv: string;
   host: string;
   port: number;
@@ -19,6 +21,8 @@ const parsePort = (value: string | undefined, fallback: number) => {
 };
 
 export const readConfig = (env: NodeJS.ProcessEnv = process.env): ApiConfig => ({
+  adminPasswordHash: env.ADMIN_PASSWORD_HASH,
+  adminSessionSecret: env.ADMIN_SESSION_SECRET,
   nodeEnv: env.NODE_ENV ?? "development",
   host: env.HOST ?? "localhost",
   port: parsePort(env.PORT, 4100),

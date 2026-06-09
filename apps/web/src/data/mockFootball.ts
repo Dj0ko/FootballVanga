@@ -19,6 +19,15 @@ export type MatchScore = {
   away: number | "";
 };
 
+export type CompletedMatchResult = {
+  finishedAtIso: string;
+  matchId: string;
+  score: {
+    away: number;
+    home: number;
+  };
+};
+
 export type Participant = {
   name: string;
   points: number;
@@ -791,6 +800,49 @@ export const predictionDeadlineStartsAtIso =
   }, null) ?? "2026-06-11T19:00:00Z";
 
 export const groupStageMatchCount = matches.length;
+
+export const completedMatchResults: CompletedMatchResult[] = [
+  {
+    matchId: "a-1",
+    finishedAtIso: "2026-06-11T21:00:00Z",
+    score: {
+      home: 2,
+      away: 1
+    }
+  },
+  {
+    matchId: "a-2",
+    finishedAtIso: "2026-06-12T04:00:00Z",
+    score: {
+      home: 1,
+      away: 1
+    }
+  },
+  {
+    matchId: "b-1",
+    finishedAtIso: "2026-06-12T21:00:00Z",
+    score: {
+      home: 0,
+      away: 2
+    }
+  },
+  {
+    matchId: "d-1",
+    finishedAtIso: "2026-06-13T03:00:00Z",
+    score: {
+      home: 3,
+      away: 1
+    }
+  },
+  {
+    matchId: "b-2",
+    finishedAtIso: "2026-06-13T21:00:00Z",
+    score: {
+      home: 1,
+      away: 0
+    }
+  }
+];
 
 export const participants: Participant[] = [
   { name: "Алексей", points: 18, exactScores: 4 },

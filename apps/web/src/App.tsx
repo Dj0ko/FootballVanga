@@ -9,6 +9,7 @@ import {
   type RoomParticipant,
   type RoomSummary
 } from "./data/mockFootball";
+import { AdminResultsScreen } from "./screens/admin-results/AdminResultsScreen";
 import {
   RoomEntryScreen,
   type ParticipantEntryInput,
@@ -31,6 +32,7 @@ const createDraftParticipant = (name: string): RoomParticipant => ({
 const normalizeParticipantName = (name: string) => name.trim().toLocaleLowerCase("ru-RU");
 
 export default function App() {
+  const isAdminResultsRoute = window.location.pathname === "/admin/results";
   const [screen, setScreen] = useState<AppScreen>("welcome");
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
   const [activeRoom, setActiveRoom] = useState<RoomSummary>(firstRoom);
@@ -140,6 +142,10 @@ export default function App() {
     setViewedParticipant(participant);
     setScreen("workspace");
   };
+
+  if (isAdminResultsRoute) {
+    return <AdminResultsScreen />;
+  }
 
   if (screen === "welcome") {
     return <WelcomeScreen onContinue={() => setScreen("rooms")} />;

@@ -8,6 +8,8 @@
     "packages/*"
   ],
   "scripts": {
+    "admin:hash-password": "npm run admin:hash-password -w apps/api",
+    "admin:session-secret": "npm run admin:session-secret -w apps/api",
     "dev": "npm run build -w packages/shared && concurrently -n web,api -c green,cyan \"npm run dev -w apps/web\" \"npm run dev -w apps/api\"",
     "build": "npm run build -w packages/shared && npm run build -w apps/api && npm run build -w apps/web",
     "typecheck": "npm run typecheck -w packages/shared && npm run typecheck -w apps/api && npm run typecheck -w apps/web",

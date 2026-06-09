@@ -51,6 +51,14 @@ Run type checks:
 npm run typecheck
 ```
 
+Run database migrations:
+
+```bash
+npm run db:migrate
+```
+
+The migration runner uses `DATABASE_URL` from the API environment and records applied files in `schema_migrations`.
+
 ## Admin Result Entry
 
 Manual result entry is available through the hidden admin route:

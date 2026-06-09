@@ -92,7 +92,15 @@ The backend currently has:
 - `PUT /api/admin/matches/:matchId/result`
 - `POST /api/admin/scoring/recalculate`
 
-Backend result storage is temporary in-memory scaffold state until PostgreSQL schema and migrations are implemented.
+Backend result storage is temporary in-memory scaffold state until result endpoints are wired to PostgreSQL.
+
+The backend now also has PostgreSQL migration scaffolding:
+
+- `apps/api/db/migrations/0001_initial_schema.sql` creates the initial MVP schema.
+- The initial schema includes rooms, participants, participant sessions, tournament groups, teams, matches, match results, group standing results, participant predictions, score snapshots, and the tournament deadline view.
+- `npm run db:migrate` applies pending migrations using `DATABASE_URL`.
+- Applied migration versions are stored in `schema_migrations`.
+- The migration runner has been syntax-checked, and the workspace typecheck/build passed; applying the migration still requires a configured PostgreSQL database.
 
 World Cup 2026 group data is now used by the mocked prediction screen. Group-stage fixtures for future seed data are documented in `docs/world-cup-2026-data.md`.
 
@@ -326,7 +334,7 @@ Requires explicit user permission:
 
 The UI is considered complete enough for the current mock stage. The next work should move the product from local mock state to backend-backed behavior in this order:
 
-1. PostgreSQL schema and migrations.
+1. PostgreSQL schema and migrations. Completed as initial migration scaffold; future schema changes should add new migration files.
 2. Seed data for World Cup 2026 groups, teams, and group-stage matches.
 3. Real room creation, public room list, room entry, and room password hashes.
 4. Participant display-name entry, participant code hashes, and participant session ownership.

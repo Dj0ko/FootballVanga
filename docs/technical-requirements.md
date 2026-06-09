@@ -22,6 +22,7 @@ The current frontend uses:
 ```text
 apps/web
 apps/api
+apps/api/db/migrations
 packages/shared
 docs
 ```
@@ -29,6 +30,8 @@ docs
 `apps/web` contains the browser application.
 
 `apps/api` contains the HTTP API and future background result import worker.
+
+`apps/api/db/migrations` contains PostgreSQL schema migrations.
 
 `packages/shared` contains TypeScript types and scoring constants shared between frontend and backend.
 
@@ -205,6 +208,14 @@ Run type checks:
 ```bash
 npm run typecheck
 ```
+
+Run database migrations:
+
+```bash
+npm run db:migrate
+```
+
+The migration runner uses `DATABASE_URL` from the API environment and records applied migrations in `schema_migrations`.
 
 ## Environment
 

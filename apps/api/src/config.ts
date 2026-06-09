@@ -20,8 +20,7 @@ const parsePort = (value: string | undefined, fallback: number) => {
 
 export const readConfig = (env: NodeJS.ProcessEnv = process.env): ApiConfig => ({
   nodeEnv: env.NODE_ENV ?? "development",
-  host: env.HOST ?? "127.0.0.1",
+  host: env.HOST ?? "localhost",
   port: parsePort(env.PORT, 4100),
   databaseUrl: env.DATABASE_URL
 });
-

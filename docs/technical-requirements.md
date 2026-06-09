@@ -148,7 +148,21 @@ Install dependencies:
 npm install
 ```
 
-Run both apps:
+Run only the frontend for current UI work:
+
+```bash
+npm run dev -w apps/web
+```
+
+The frontend dev server is configured for:
+
+```text
+http://localhost:5173/
+```
+
+The current frontend uses mock data and does not require the backend for UI-only checks.
+
+Run both apps when backend/API work is needed:
 
 ```bash
 npm run dev
@@ -193,4 +207,3 @@ Production values belong in `/etc/footballvanga.env` on the server and must not 
 8. Scoring and leaderboard.
 9. Deployment to VPS.
 10. Automatic result import.
-

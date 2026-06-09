@@ -4,16 +4,15 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: "127.0.0.1",
+    host: "localhost",
     port: 5173,
     proxy: {
-      "/api": "http://127.0.0.1:4100",
-      "/health": "http://127.0.0.1:4100"
+      "/api": "http://localhost:4100",
+      "/health": "http://localhost:4100"
     }
   },
   preview: {
-    host: "127.0.0.1",
+    host: "localhost",
     port: 4173
   }
 });
-

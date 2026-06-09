@@ -1,6 +1,5 @@
-import { Lock, LogIn, Plus, Save, ShieldCheck, Trophy, Users } from "lucide-react";
+import { ArrowRight, Lock, LogIn, Plus, Save, ShieldCheck, Trophy, Users } from "lucide-react";
 import { useMemo, useState } from "react";
-import { SCORING_RULES } from "@footballvanga/shared";
 
 type Group = {
   id: string;
@@ -47,26 +46,8 @@ const initialStandings = Object.fromEntries(
 
 const initialScores = Object.fromEntries(matches.map((match) => [match.id, { home: 0, away: 0 }]));
 
-const formatExactScores = (count: number) => {
-  const lastTwoDigits = count % 100;
-  const lastDigit = count % 10;
-
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
-    return `${count} точных счетов`;
-  }
-
-  if (lastDigit === 1) {
-    return `${count} точный счет`;
-  }
-
-  if (lastDigit >= 2 && lastDigit <= 4) {
-    return `${count} точных счета`;
-  }
-
-  return `${count} точных счетов`;
-};
-
 export default function App() {
+  const [hasContinued, setHasContinued] = useState(false);
   const [roomCode, setRoomCode] = useState("chm-druzya");
   const [joinCode, setJoinCode] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -95,6 +76,35 @@ export default function App() {
     setActiveParticipant(nextName);
     setDisplayName("");
   };
+
+  if (!hasContinued) {
+    return (
+      <main className="welcome-shell">
+        <section className="welcome-hero" aria-labelledby="welcome-title">
+          <div className="welcome-field" aria-hidden="true">
+            <span className="field-line field-line-top" />
+            <span className="field-line field-line-middle" />
+            <span className="field-line field-line-bottom" />
+            <span className="center-circle" />
+          </div>
+
+          <div className="welcome-content">
+            <p className="eyebrow">Прогнозы группового этапа</p>
+            <h1 id="welcome-title">FootballVanga</h1>
+            <p className="welcome-lead">Закрытая игра прогнозов для футбольных компаний.</p>
+            <p className="welcome-copy">
+              Входи в комнату, оставляй прогноз до старта турнира и следи, как меняется
+              таблица после каждого матча.
+            </p>
+            <button type="button" className="welcome-button" onClick={() => setHasContinued(true)}>
+              Продолжить
+              <ArrowRight size={20} aria-hidden="true" />
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="app-shell">
@@ -173,11 +183,8 @@ export default function App() {
               <strong>{activeParticipant}</strong>
             </div>
             <div>
-              <span>Очки</span>
-              <strong>
-                {SCORING_RULES.exactGroupPlace}/{SCORING_RULES.matchOutcome}/+
-                {SCORING_RULES.exactScore}
-              </strong>
+              <span>Статус</span>
+              <strong>Черновик открыт</strong>
             </div>
             <button type="button" className="save-button">
               <Save size={18} aria-hidden="true" />
@@ -283,7 +290,6 @@ export default function App() {
                 <span className="rank">{index + 1}</span>
                 <span>{participant.name}</span>
                 <strong>{participant.points}</strong>
-                <small>{formatExactScores(participant.exactScores)}</small>
               </li>
             ))}
           </ol>

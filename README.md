@@ -19,7 +19,21 @@ Install dependencies:
 npm install
 ```
 
-Run both apps:
+Run only the frontend for current UI work:
+
+```bash
+npm run dev -w apps/web
+```
+
+Then open:
+
+```text
+http://localhost:5173/
+```
+
+The current UI uses mocked data and does not require the API to be running.
+
+Run both apps when backend/API work is needed:
 
 ```bash
 npm run dev
@@ -46,4 +60,3 @@ The project is intended to deploy to the existing VPS stack:
 - PostgreSQL
 - `/opt/footballvanga`
 - backend port `4100`
-

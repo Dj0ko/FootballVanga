@@ -62,7 +62,7 @@ p {
 
 h1 {
   margin-bottom: 0;
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-size: 3.25rem;
   line-height: 1;
 }
 
@@ -80,11 +80,108 @@ h3 {
 .section-title,
 .primary-button,
 .save-button,
+.welcome-button,
 .participant-row,
 .new-participant,
 .status-strip {
   display: flex;
   align-items: center;
+}
+
+.welcome-shell {
+  min-height: 100vh;
+  background: #e8f0e7;
+}
+
+.welcome-hero {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  place-items: center start;
+  overflow: hidden;
+  padding: 40px;
+}
+
+.welcome-field {
+  position: absolute;
+  inset: 24px;
+  border: 2px solid rgba(32, 125, 79, 0.28);
+  border-radius: 8px;
+  background: #edf4eb;
+}
+
+.field-line,
+.center-circle {
+  position: absolute;
+  pointer-events: none;
+}
+
+.field-line {
+  left: 0;
+  width: 100%;
+  border-top: 2px solid rgba(32, 125, 79, 0.22);
+}
+
+.field-line-top {
+  top: 22%;
+}
+
+.field-line-middle {
+  top: 50%;
+}
+
+.field-line-bottom {
+  top: 78%;
+}
+
+.center-circle {
+  top: 50%;
+  left: 70%;
+  width: 280px;
+  height: 280px;
+  border: 2px solid rgba(216, 77, 63, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.welcome-content {
+  position: relative;
+  width: min(640px, 100%);
+  padding: 24px 0;
+}
+
+.welcome-content h1 {
+  margin-bottom: 22px;
+  font-size: 4rem;
+}
+
+.welcome-lead {
+  max-width: 520px;
+  margin-bottom: 16px;
+  color: #16211b;
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1.22;
+}
+
+.welcome-copy {
+  max-width: 560px;
+  margin-bottom: 28px;
+  color: #46544b;
+  font-size: 1.08rem;
+  line-height: 1.58;
+}
+
+.welcome-button {
+  min-height: 52px;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 22px;
+  background: #207d4f;
+  color: #ffffff;
+  font-weight: 900;
 }
 
 .deadline-pill {
@@ -328,7 +425,6 @@ button:focus-visible {
 .leaderboard li {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) auto;
-  grid-template-rows: auto auto;
   align-items: center;
   column-gap: 8px;
   border-bottom: 1px solid #e5eae2;
@@ -341,7 +437,6 @@ button:focus-visible {
 }
 
 .rank {
-  grid-row: span 2;
   display: grid;
   width: 30px;
   height: 30px;
@@ -354,11 +449,6 @@ button:focus-visible {
 
 .leaderboard strong {
   color: #d84d3f;
-}
-
-.leaderboard small {
-  grid-column: 2 / 4;
-  color: #6b776f;
 }
 
 @media (max-width: 1120px) {
@@ -374,6 +464,37 @@ button:focus-visible {
 @media (max-width: 780px) {
   .app-shell {
     padding: 16px;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+  }
+
+  .welcome-hero {
+    align-items: start;
+    padding: 28px 18px;
+  }
+
+  .welcome-field {
+    inset: 12px;
+  }
+
+  .center-circle {
+    left: 82%;
+    width: 190px;
+    height: 190px;
+  }
+
+  .welcome-content {
+    padding-top: 76px;
+  }
+
+  .welcome-content h1 {
+    font-size: 3rem;
+  }
+
+  .welcome-lead {
+    font-size: 1.25rem;
   }
 
   .topbar,
@@ -392,4 +513,3 @@ button:focus-visible {
     grid-column: auto;
   }
 }
-

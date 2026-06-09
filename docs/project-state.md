@@ -76,8 +76,9 @@ The frontend currently has:
 - Team rows show SVG flags imported from the MIT-licensed `flag-icons` package.
 - A hidden admin result-entry screen is available at `/admin/results`.
 - The admin screen checks backend admin session status, logs in through `POST /api/admin/login`, and writes scores through `PUT /api/admin/matches/:matchId/result`.
+- The room lobby participant sidebar now refreshes from the backend-backed room leaderboard endpoint after participant entry and when returning to the lobby.
 
-The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts` for tournament display and leaderboards. Participant predictions and match results are now loaded from and saved to the backend.
+The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts` for tournament display and the all-rooms top-5 leaderboard sidebar. Participant predictions, room leaderboards, and match results are now loaded from and saved to the backend.
 
 The rooms list, room creation, room password entry, participant entry, participant lists after entry, and hidden `/admin/results` screen call the backend scaffold.
 
@@ -90,6 +91,7 @@ The backend currently has:
 - `POST /api/rooms/:roomId/enter`
 - `POST /api/rooms/:roomId/participants/enter`
 - `GET /api/rooms/:roomId/participants`
+- `GET /api/rooms/:roomId/leaderboard`
 - `GET /api/rooms/:roomId/predictions/:participantId`
 - `PUT /api/rooms/:roomId/predictions/me`
 - `GET /api/match-history`
@@ -102,6 +104,8 @@ The backend currently has:
 Backend match result storage uses PostgreSQL when `DATABASE_URL` is configured and migrations have been applied. Without `DATABASE_URL`, match result storage uses the local in-memory fallback.
 
 Room, participant, prediction, and match result storage use PostgreSQL when `DATABASE_URL` is configured and migrations have been applied. Without `DATABASE_URL`, the API uses local in-memory room, participant, prediction, and match result storage so room creation, room password entry, participant entry, participant session checks, prediction persistence, and result entry can be checked without a local database; in-memory rooms, participants, sessions, predictions, and match results reset after the API restarts.
+
+Scoring recalculation now writes PostgreSQL `score_snapshots` when `DATABASE_URL` is configured and updates in-memory participant scores in the local no-database path. Match-result writes and prediction saves trigger recalculation automatically when scoring storage is configured, and operators can also trigger a manual recalculation through `POST /api/admin/scoring/recalculate`.
 
 Room passwords are hashed with the shared scrypt password-hash helper before storage.
 
@@ -122,6 +126,7 @@ The repository now has an automated API test suite:
 - `npm test` runs API tests through the root workspace script.
 - API tests type-check test files with `apps/api/tsconfig.test.json`.
 - The current tests cover shared password hashing, room endpoint behavior, participant entry/session behavior, prediction read/write/deadline behavior, match result read/write/admin behavior through Fastify `inject`, and World Cup 2026 seed migration invariants.
+- The current tests cover shared password hashing, room endpoint behavior, participant entry/session behavior, prediction read/write/deadline behavior, match result read/write/admin behavior, scoring recalculation, room leaderboard behavior through Fastify `inject`, and World Cup 2026 seed migration invariants.
 
 World Cup 2026 group data is now used by the prediction screen and by the backend seed migration. Group-stage fixtures are documented in `docs/world-cup-2026-data.md`.
 
@@ -370,7 +375,7 @@ Recent backend groundwork completed on 2026-06-09:
 - PostgreSQL-backed match results from the hidden admin result-entry screen were wired to API endpoints with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 - Match result writes require the admin session, validate score ranges, reject unknown match IDs, and update public match history.
 - API tests were added for password hashing, room endpoints, participant entry/session endpoints, prediction endpoints, match result endpoints, and World Cup seed invariants.
-- Scoring recalculation and room leaderboard remain the next backend roadmap step.
+- Scoring recalculation and room leaderboard were completed with PostgreSQL `score_snapshots`, an in-memory fallback, automatic recalculation after prediction/result writes, manual admin recalculation, and `GET /api/rooms/:roomId/leaderboard`.
 
 ## Verification Policy
 
@@ -400,7 +405,7 @@ The UI is considered complete enough for the current mock stage. The next work s
 4. Participant display-name entry, participant code hashes, and participant session ownership. Completed as API endpoints with frontend wiring, in-memory local storage, and PostgreSQL storage when `DATABASE_URL` is set.
 5. Prediction persistence for group standings and match scores, with backend deadline enforcement. Completed as API endpoints with frontend wiring, in-memory local storage, and PostgreSQL storage when `DATABASE_URL` is set.
 6. PostgreSQL-backed match results from the hidden admin result-entry screen, replacing current in-memory result storage. Completed as API endpoints with frontend match-history wiring, in-memory local storage, and PostgreSQL storage when `DATABASE_URL` is set.
-7. Scoring recalculation and room leaderboard.
+7. Scoring recalculation and room leaderboard. Completed as API-backed score snapshots, in-memory fallback scoring, admin recalculation, automatic recalculation after prediction/result writes, and a participant-session-protected room leaderboard endpoint.
 
 After these seven steps, continue with deployment hardening and scheduled automatic result sync against an external source.
 

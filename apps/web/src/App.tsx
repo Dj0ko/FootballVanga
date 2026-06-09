@@ -8,6 +8,7 @@ import {
   enterParticipant as enterParticipantRequest,
   enterRoom,
   fetchMatchHistory,
+  fetchRoomLeaderboard,
   fetchRooms
 } from "./api/rooms";
 import {
@@ -74,6 +75,25 @@ export default function App() {
       void loadMatchResults();
     }
   }, [loadMatchResults, loadRooms, screen]);
+
+  const refreshRoomLeaderboard = useCallback(async (roomId: string, sessionToken: string) => {
+    try {
+      const leaderboard = await fetchRoomLeaderboard(roomId, sessionToken);
+
+      setParticipantsByRoomId((currentParticipantsByRoomId) => ({
+        ...currentParticipantsByRoomId,
+        [roomId]: leaderboard
+      }));
+    } catch {
+      // Keep the last known participant list if the leaderboard refresh fails.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (screen === "roomLobby" && activeRoom && currentParticipantSession) {
+      void refreshRoomLeaderboard(activeRoom.id, currentParticipantSession.token);
+    }
+  }, [activeRoom, currentParticipantSession, refreshRoomLeaderboard, screen]);
 
   const getRoomParticipants = (roomId: string) => participantsByRoomId[roomId] ?? [];
 

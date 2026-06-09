@@ -46,6 +46,10 @@ type ParticipantsResponse = {
   participants: ApiParticipantSummary[];
 };
 
+type LeaderboardResponse = {
+  leaderboard: ApiParticipantSummary[];
+};
+
 type EnterParticipantResponse = ParticipantsResponse & {
   session: ParticipantSession;
 };
@@ -161,4 +165,17 @@ export const fetchParticipants = async (roomId: string, sessionToken: string) =>
     participant: toRoomParticipant(response.participant),
     participants: response.participants.map(toRoomParticipant)
   };
+};
+
+export const fetchRoomLeaderboard = async (roomId: string, sessionToken: string) => {
+  const response = await requestJson<LeaderboardResponse>(
+    `/api/rooms/${encodeURIComponent(roomId)}/leaderboard`,
+    {
+      headers: {
+        Authorization: `Bearer ${sessionToken}`
+      }
+    }
+  );
+
+  return response.leaderboard.map(toRoomParticipant);
 };

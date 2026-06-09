@@ -42,6 +42,8 @@ export type StoredParticipantPrediction = {
 
 export type StoredMatchResult = MatchResult;
 
+export type StoredGroupStandingResult = GroupStandingPrediction;
+
 export type StoredParticipantSession = {
   expiresAtIso: string;
   lastUsedAtIso: string;
@@ -52,6 +54,7 @@ export type StoredParticipantSession = {
 
 export type InMemoryFootballStore = {
   deadlineIso: string;
+  groupStandingResults: Map<string, StoredGroupStandingResult>;
   matchResults: Map<string, StoredMatchResult>;
   nextParticipantOrder: number;
   nextRoomOrder: number;
@@ -67,6 +70,7 @@ export const createInMemoryFootballStore = (
   } = {}
 ): InMemoryFootballStore => ({
   deadlineIso: options.deadlineIso ?? DEFAULT_TOURNAMENT_DEADLINE_ISO,
+  groupStandingResults: new Map(),
   matchResults: new Map(),
   nextParticipantOrder: 0,
   nextRoomOrder: 0,

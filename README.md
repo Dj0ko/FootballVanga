@@ -31,7 +31,7 @@ Then open:
 http://localhost:5173/
 ```
 
-Tournament display data still comes from the local World Cup 2026 dataset. Room list, room creation, room password entry, participant entry, participant lists, match history, admin result writes, and prediction reads/writes call the API. Without `DATABASE_URL`, the API uses local in-memory room, participant, prediction, and match result storage; rooms, participants, sessions, predictions, and match results reset after the API restarts. Set `DATABASE_URL` and run migrations when PostgreSQL-backed storage is needed.
+Tournament display data still comes from the local World Cup 2026 dataset. Room list, room creation, room password entry, participant entry, participant lists, room leaderboards, match history, admin result writes, scoring recalculation, and prediction reads/writes call the API. Without `DATABASE_URL`, the API uses local in-memory room, participant, prediction, match result, and scoring storage; rooms, participants, sessions, predictions, match results, and scores reset after the API restarts. Set `DATABASE_URL` and run migrations when PostgreSQL-backed storage is needed.
 
 Run both apps when backend/API work is needed:
 

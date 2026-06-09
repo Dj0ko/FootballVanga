@@ -25,11 +25,13 @@ import { createInMemoryMatchResultRepository } from "./inMemoryMatchResultReposi
 import { createInMemoryParticipantRepository } from "./inMemoryParticipantRepository.js";
 import { createInMemoryPredictionRepository } from "./inMemoryPredictionRepository.js";
 import { createInMemoryFootballStore, createInMemoryRoomRepository } from "./inMemoryRoomRepository.js";
+import { createInMemoryScoringRepository } from "./inMemoryScoringRepository.js";
 import { createMatchResultRepository, type MatchResultRepository } from "./matchResultRepository.js";
 import { createParticipantRepository, type ParticipantRepository } from "./participantRepository.js";
 import { hashPassword, verifyPassword } from "./passwordHash.js";
 import { createPredictionRepository, type PredictionRepository } from "./predictionRepository.js";
 import { createRoomRepository, type RoomRepository } from "./roomRepository.js";
+import { createScoringRepository, type ScoringRepository } from "./scoringRepository.js";
 import {
   createParticipantSessionToken,
   getParticipantSessionExpiresAt,
@@ -71,6 +73,7 @@ type BuildServerDependencies = {
   participantRepository?: ParticipantRepository | null;
   predictionRepository?: PredictionRepository | null;
   roomRepository?: RoomRepository | null;
+  scoringRepository?: ScoringRepository | null;
 };
 
 const isScoreValue = (value: unknown): value is number =>
@@ -259,7 +262,8 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
     dependencies.matchResultRepository === undefined &&
     dependencies.roomRepository === undefined &&
     dependencies.participantRepository === undefined &&
-    dependencies.predictionRepository === undefined;
+    dependencies.predictionRepository === undefined &&
+    dependencies.scoringRepository === undefined;
   const shouldCreateDatabasePool = shouldCreateStorage;
   const databasePool = shouldCreateDatabasePool && config.databaseUrl ? createDatabasePool(config.databaseUrl) : null;
   const inMemoryStore = shouldCreateStorage && !databasePool ? createInMemoryFootballStore() : null;
@@ -289,6 +293,13 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
         ? createInMemoryMatchResultRepository(inMemoryStore)
         : null
     : null;
+  const scoringRepository = shouldCreateStorage
+    ? databasePool
+      ? createScoringRepository(databasePool)
+      : inMemoryStore
+        ? createInMemoryScoringRepository(inMemoryStore)
+        : null
+    : null;
   const resolvedMatchResultRepository =
     dependencies.matchResultRepository === undefined ? matchResultRepository : dependencies.matchResultRepository;
   const resolvedRoomRepository = dependencies.roomRepository === undefined ? roomRepository : dependencies.roomRepository;
@@ -296,6 +307,8 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
     dependencies.participantRepository === undefined ? participantRepository : dependencies.participantRepository;
   const resolvedPredictionRepository =
     dependencies.predictionRepository === undefined ? predictionRepository : dependencies.predictionRepository;
+  const resolvedScoringRepository =
+    dependencies.scoringRepository === undefined ? scoringRepository : dependencies.scoringRepository;
   const app = Fastify({
     logger: config.nodeEnv !== "test"
   });
@@ -661,6 +674,10 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
         };
       }
 
+      if (resolvedScoringRepository) {
+        await resolvedScoringRepository.recalculateScores();
+      }
+
       return {
         deadlineIso: metadata.deadlineIso,
         isLocked: false,
@@ -668,6 +685,32 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
       };
     }
   );
+
+  app.get<{ Params: { roomId: string } }>("/api/rooms/:roomId/leaderboard", async (request, reply) => {
+    if (!resolvedParticipantRepository || !resolvedScoringRepository) {
+      reply.code(503);
+      return {
+        message: "Leaderboard storage is not configured."
+      };
+    }
+
+    const participant = await getAuthenticatedParticipant(
+      resolvedParticipantRepository,
+      request.params.roomId,
+      request.headers.authorization
+    );
+
+    if (!participant) {
+      reply.code(401);
+      return {
+        message: "Participant session is required."
+      };
+    }
+
+    return {
+      leaderboard: await resolvedScoringRepository.listRoomLeaderboard(request.params.roomId)
+    };
+  });
 
   app.get("/api/match-history", async (_request, reply) => {
     if (!resolvedMatchResultRepository) {
@@ -773,6 +816,10 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
         };
       }
 
+      if (resolvedScoringRepository) {
+        await resolvedScoringRepository.recalculateScores();
+      }
+
       return {
         ok: true,
         result
@@ -795,9 +842,19 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
       };
     }
 
+    if (!resolvedScoringRepository) {
+      reply.code(503);
+      return {
+        message: "Scoring storage is not configured."
+      };
+    }
+
+    const result = await resolvedScoringRepository.recalculateScores();
+
     return {
+      ...result,
       ok: true,
-      stage: "scaffold"
+      stage: "mvp"
     };
   });
 

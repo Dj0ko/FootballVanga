@@ -178,10 +178,12 @@ Current room endpoints use the same API shape in both storage modes:
 - `POST /api/rooms/:roomId/enter` verifies the room password without returning private room contents.
 - `POST /api/rooms/:roomId/participants/enter` verifies the room password, creates or resumes a participant by display name plus participant code, stores the participant code as a scrypt hash, and returns a participant session token.
 - `GET /api/rooms/:roomId/participants` returns the participant list only when called with a valid participant session bearer token.
+- `GET /api/rooms/:roomId/leaderboard` returns the room leaderboard only when called with a valid participant session bearer token for that room.
+- `POST /api/admin/scoring/recalculate` recalculates score snapshots through operator-only admin authorization.
 
 When `DATABASE_URL` is configured, room storage is PostgreSQL-backed and expects applied migrations.
 
-When `DATABASE_URL` is absent, room and participant storage are in-memory for local manual checks. Rooms, participants, and participant sessions created in this mode reset after the API process restarts.
+When `DATABASE_URL` is absent, room, participant, prediction, match result, and scoring storage are in-memory for local manual checks. Rooms, participants, sessions, predictions, match results, and scores created in this mode reset after the API process restarts.
 
 ## Local Development
 
@@ -203,7 +205,7 @@ The frontend dev server is configured for:
 http://localhost:5173/
 ```
 
-Prediction workspace UI checks can still use mock data without the backend. Room list, room creation, room password entry, participant entry, and participant lists require the API. Leave `DATABASE_URL` empty for local in-memory room and participant storage, or set it and run migrations for PostgreSQL-backed storage.
+Prediction workspace UI checks can still use mock data without the backend. Room list, room creation, room password entry, participant entry, participant lists, room leaderboards, match history, scoring recalculation, and prediction reads/writes require the API. Leave `DATABASE_URL` empty for local in-memory room, participant, prediction, match result, and scoring storage, or set it and run migrations for PostgreSQL-backed storage.
 
 Run both apps when backend/API work is needed:
 
@@ -229,7 +231,7 @@ Run automated tests:
 npm test
 ```
 
-The current test suite covers shared password hashing, room API route behavior, participant entry/session behavior with Fastify injection, and World Cup 2026 seed migration invariants.
+The current test suite covers shared password hashing, room API route behavior, participant entry/session behavior, prediction read/write/deadline behavior, match result/admin behavior, scoring recalculation, room leaderboard behavior with Fastify injection, and World Cup 2026 seed migration invariants.
 
 Run database migrations:
 
@@ -278,6 +280,6 @@ npm run admin:session-secret
 4. Participant display-name entry, participant code hashes, and participant session ownership. Completed as API-backed participant entry with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 5. Prediction persistence for group standings and match scores, with backend deadline enforcement. Completed as API-backed prediction reads/writes with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 6. PostgreSQL-backed match results from the hidden admin result-entry screen. Completed as API-backed result reads/writes with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
-7. Scoring recalculation and room leaderboard.
+7. Scoring recalculation and room leaderboard. Completed as PostgreSQL-backed `score_snapshots`, in-memory fallback scoring, admin-triggered recalculation, automatic recalculation after prediction/result writes, and a participant-session-protected room leaderboard endpoint.
 8. Deployment hardening on the VPS.
 9. Scheduled automatic result import.

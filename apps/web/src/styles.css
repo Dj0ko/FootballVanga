@@ -90,11 +90,13 @@ h3 {
 
 .welcome-shell {
   min-height: 100vh;
-  background: #e8f0e7;
+  background: #0b3525;
+  color: #f7fff8;
 }
 
 .welcome-hero {
   position: relative;
+  isolation: isolate;
   display: grid;
   min-height: 100vh;
   place-items: center start;
@@ -102,63 +104,108 @@ h3 {
   padding: 40px;
 }
 
-.welcome-field {
+.welcome-hero::before {
   position: absolute;
-  inset: 24px;
-  border: 2px solid rgba(32, 125, 79, 0.28);
-  border-radius: 8px;
-  background: #edf4eb;
+  z-index: 1;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(7, 31, 22, 0.88), rgba(7, 31, 22, 0.58) 42%, rgba(7, 31, 22, 0.12) 72%),
+    linear-gradient(180deg, rgba(5, 23, 17, 0.2), transparent 34%, rgba(5, 23, 17, 0.22));
+  content: "";
 }
 
-.field-line,
+.welcome-field {
+  position: absolute;
+  z-index: 0;
+  inset: 24px;
+  --penalty-height: 64%;
+  --penalty-width: 18%;
+  overflow: hidden;
+  border: 2px solid rgba(244, 255, 246, 0.38);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 78% 50%, rgba(242, 184, 75, 0.1), transparent 24%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 96px, transparent 96px 192px),
+    linear-gradient(90deg, #0b5a38, #0f7447 44%, #0b5a38);
+  box-shadow:
+    inset 0 0 0 999px rgba(10, 61, 39, 0.08),
+    inset 0 0 60px rgba(0, 0, 0, 0.18);
+}
+
+.penalty-box {
+  position: absolute;
+  top: calc((100% - var(--penalty-height)) / 2);
+  width: var(--penalty-width);
+  height: var(--penalty-height);
+  border: 2px solid rgba(244, 255, 246, 0.2);
+  pointer-events: none;
+}
+
+.penalty-box-left {
+  left: 0;
+}
+
+.penalty-box-right {
+  right: 0;
+}
+
+.midfield-line,
 .center-circle {
   position: absolute;
   pointer-events: none;
 }
 
-.field-line {
-  left: 0;
-  width: 100%;
-  border-top: 2px solid rgba(32, 125, 79, 0.22);
-}
-
-.field-line-top {
-  top: 22%;
-}
-
-.field-line-middle {
-  top: 50%;
-}
-
-.field-line-bottom {
-  top: 78%;
+.midfield-line {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 2px solid rgba(244, 255, 246, 0.24);
 }
 
 .center-circle {
   top: 50%;
-  left: 70%;
+  left: 50%;
   width: 280px;
   height: 280px;
-  border: 2px solid rgba(216, 77, 63, 0.2);
+  border: 2px solid rgba(244, 255, 246, 0.22);
   border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.center-circle::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(244, 255, 246, 0.32);
+  content: "";
   transform: translate(-50%, -50%);
 }
 
 .welcome-content {
   position: relative;
+  z-index: 2;
   width: min(640px, 100%);
   padding: 24px 0;
 }
 
+.welcome-content .eyebrow {
+  color: #bcebc4;
+}
+
 .welcome-content h1 {
   margin-bottom: 22px;
+  color: #fbfff8;
   font-size: 4rem;
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.28);
 }
 
 .welcome-lead {
   max-width: 520px;
   margin-bottom: 16px;
-  color: #16211b;
+  color: #ffffff;
   font-size: 1.45rem;
   font-weight: 900;
   line-height: 1.22;
@@ -167,7 +214,7 @@ h3 {
 .welcome-copy {
   max-width: 560px;
   margin-bottom: 28px;
-  color: #46544b;
+  color: #d8e8da;
   font-size: 1.08rem;
   line-height: 1.58;
 }
@@ -179,9 +226,10 @@ h3 {
   border: 0;
   border-radius: 8px;
   padding: 0 22px;
-  background: #207d4f;
-  color: #ffffff;
+  background: #f2b84b;
+  color: #182016;
   font-weight: 900;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.2);
 }
 
 .deadline-pill {

@@ -82,9 +82,9 @@ export default function App() {
       <main className="welcome-shell">
         <section className="welcome-hero" aria-labelledby="welcome-title">
           <div className="welcome-field" aria-hidden="true">
-            <span className="field-line field-line-top" />
-            <span className="field-line field-line-middle" />
-            <span className="field-line field-line-bottom" />
+            <span className="penalty-box penalty-box-left" />
+            <span className="penalty-box penalty-box-right" />
+            <span className="midfield-line" />
             <span className="center-circle" />
           </div>
 

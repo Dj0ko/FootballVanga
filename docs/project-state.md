@@ -40,6 +40,27 @@ The frontend currently has:
 
 The frontend still uses local mock data in `apps/web/src/App.tsx`. It does not call the backend yet.
 
+## Completed UI Decisions
+
+### Welcome Screen
+
+The welcome screen is considered ready for now.
+
+Current welcome screen decisions:
+
+- The welcome screen uses an abstract football field drawn in CSS, not an image asset.
+- The field background is dark green with subtle grass stripes.
+- Text uses a high-contrast light palette over the green background.
+- The `Продолжить` button uses a warm yellow accent.
+- The field markings include:
+  - outer field border;
+  - center vertical line;
+  - center circle and center dot;
+  - left and right penalty boxes.
+- Horizontal field lines were intentionally removed because they do not match football field markings.
+- The left-side dark gradient is intentional and should remain because it improves text contrast.
+- Rules/scoring explanations should not appear on the welcome screen; they will be added later in a separate rules window/modal.
+
 ## Local Development Notes
 
 Do not start the local app unless the user explicitly asks.

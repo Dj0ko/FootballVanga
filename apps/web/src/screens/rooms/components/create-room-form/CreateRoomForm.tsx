@@ -1,7 +1,7 @@
 import { Eye, EyeOff, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
-import type { CreateRoomInput } from "../../data/mockFootball";
+import type { CreateRoomInput } from "../../../../data/mockFootball";
 import styles from "./CreateRoomForm.module.css";
 
 type CreateRoomFormProps = {

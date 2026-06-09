@@ -41,6 +41,7 @@ The frontend currently has:
 - Room creation currently requires:
   - non-empty room name;
   - room password with at least 8 characters.
+- A mocked all-rooms top-5 leaderboard sidebar on the rooms screen.
 - A mocked room card that opens the room/prediction workspace.
 - A mocked room entry panel.
 - A mocked lobby with participants.
@@ -53,7 +54,9 @@ Current frontend organization:
 
 - `apps/web/src/App.tsx` coordinates the current screen state.
 - `apps/web/src/screens/welcome` contains the welcome screen and its CSS module.
-- `apps/web/src/screens/rooms` contains the rooms list / zero state screen and its CSS module.
+- `apps/web/src/screens/rooms` contains the rooms screen and its CSS module.
+- `apps/web/src/screens/rooms/components/create-room-form` contains the room creation form and its CSS module.
+- `apps/web/src/screens/rooms/components/rooms-leaderboard` contains the all-rooms leaderboard sidebar and its CSS module.
 - `apps/web/src/screens/workspace` contains the mocked prediction workspace and its CSS module.
 - `apps/web/src/styles.css` contains only global base styles.
 
@@ -89,6 +92,8 @@ Current rooms screen decisions:
   - `Комнат еще нет`
   - `Откройте первую и зовите свою футбольную компанию.`
 - The room empty state should stay text-and-action focused; no decorative plus icon above the copy.
+- The rooms screen should use a two-column desktop layout: a narrower rooms panel on the left and a leaderboard sidebar on the right.
+- On narrower screens, the leaderboard sidebar should stack below the rooms panel.
 - The `Создать комнату` action opens an inline room creation form.
 - Room creation form fields:
   - `Название комнаты`
@@ -103,6 +108,8 @@ Current rooms screen decisions:
 - The mocked form adds the new room to the local room list for now.
 - Existing rooms are shown as compact room cards with participant count, locked-room status, deadline label, and enter action.
 - Room card enter actions should use the green primary style, not a red/destructive style.
+- The right sidebar should be titled `ТОП-5 лидеров рейтинга` and show a mocked top-5 participant leaderboard across all rooms.
+- The all-rooms leaderboard ranks by total points, then exact score count as a tiebreaker.
 
 ## Local Development Notes
 

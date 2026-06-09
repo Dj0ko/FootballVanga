@@ -35,6 +35,13 @@ export type CreateRoomInput = {
   password: string;
 };
 
+export type GlobalLeader = {
+  name: string;
+  roomName: string;
+  points: number;
+  exactScores: number;
+};
+
 export const groups: Group[] = [
   {
     id: "a",
@@ -68,6 +75,14 @@ export const firstRoom: RoomSummary = {
   participantsCount: participants.length,
   deadlineLabel: "до 15 июня, 20:00"
 };
+
+export const globalLeaders: GlobalLeader[] = [
+  { name: "Алексей", roomName: "ЧМ у друзей", points: 18, exactScores: 4 },
+  { name: "Марта", roomName: "ЧМ у друзей", points: 16, exactScores: 3 },
+  { name: "Никита", roomName: "ЧМ у друзей", points: 16, exactScores: 2 },
+  { name: "Ира", roomName: "Офисная лига", points: 14, exactScores: 3 },
+  { name: "Даня", roomName: "Дворовая сетка", points: 12, exactScores: 2 }
+];
 
 export const initialStandings = Object.fromEntries(
   groups.flatMap((group) => group.teams.map((team, index) => [team, index + 1]))

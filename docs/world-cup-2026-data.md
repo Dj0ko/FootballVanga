@@ -2,7 +2,7 @@
 
 Last checked: 2026-06-09
 
-This document is the current product reference for the mocked tournament data used by FootballVanga.
+This document is the current product reference for the mocked tournament data and backend seed migration used by FootballVanga.
 
 Sources:
 
@@ -10,7 +10,9 @@ Sources:
 - [FIFA - World Cup 2026 match schedule](https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/match-schedule-fixtures-results-teams-stadiums)
 - [FourFourTwo - World Cup 2026 complete fixtures](https://www.fourfourtwo.com/competition/world-cup-2026-fixtures-and-results)
 
-Before using this data for production seed/migrations, verify it again against FIFA's official schedule.
+The seed migration lives at `apps/api/db/migrations/0002_seed_world_cup_2026_group_stage.sql`.
+
+Before production deployment, verify this data again against FIFA's official schedule.
 
 ## Groups
 
@@ -178,3 +180,4 @@ There are 72 group-stage matches: 12 groups with 6 matches each.
   - `congo-dr`
   - `cabo-verde`
 - Version 1 predictions should use the 12 groups above and only the 72 group-stage matches.
+- The backend seed migration stores kickoff times as UTC `timestamptz` values matching the frontend `startsAtIso` values.

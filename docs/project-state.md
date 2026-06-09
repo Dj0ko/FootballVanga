@@ -98,11 +98,13 @@ The backend now also has PostgreSQL migration scaffolding:
 
 - `apps/api/db/migrations/0001_initial_schema.sql` creates the initial MVP schema.
 - The initial schema includes rooms, participants, participant sessions, tournament groups, teams, matches, match results, group standing results, participant predictions, score snapshots, and the tournament deadline view.
+- `apps/api/db/migrations/0002_seed_world_cup_2026_group_stage.sql` seeds the World Cup 2026 group-stage tournament data.
+- The seed migration inserts 12 tournament groups, 48 teams, and 72 group-stage matches with UTC kickoff times.
 - `npm run db:migrate` applies pending migrations using `DATABASE_URL`.
 - Applied migration versions are stored in `schema_migrations`.
 - The migration runner has been syntax-checked, and the workspace typecheck/build passed; applying the migration still requires a configured PostgreSQL database.
 
-World Cup 2026 group data is now used by the mocked prediction screen. Group-stage fixtures for future seed data are documented in `docs/world-cup-2026-data.md`.
+World Cup 2026 group data is now used by the mocked prediction screen and by the backend seed migration. Group-stage fixtures are documented in `docs/world-cup-2026-data.md`.
 
 Current frontend organization:
 
@@ -315,6 +317,13 @@ Recent UI work completed on 2026-06-09:
 - New participants are created through the mocked room entry flow only after the room password is accepted.
 - Existing participant names require the matching 4+ character participant code; entering someone else's name without that code must not grant edit access.
 
+Recent backend groundwork completed on 2026-06-09:
+
+- Initial PostgreSQL schema migration was added in `0001_initial_schema.sql`.
+- World Cup 2026 group-stage seed migration was added in `0002_seed_world_cup_2026_group_stage.sql`.
+- The seed migration covers 12 groups, 48 teams, and 72 group-stage matches.
+- The next backend roadmap step is real room creation, public room list, room entry, and room password hashes.
+
 ## Verification Policy
 
 Allowed without explicit app launch permission:
@@ -335,7 +344,7 @@ Requires explicit user permission:
 The UI is considered complete enough for the current mock stage. The next work should move the product from local mock state to backend-backed behavior in this order:
 
 1. PostgreSQL schema and migrations. Completed as initial migration scaffold; future schema changes should add new migration files.
-2. Seed data for World Cup 2026 groups, teams, and group-stage matches.
+2. Seed data for World Cup 2026 groups, teams, and group-stage matches. Completed as `0002_seed_world_cup_2026_group_stage.sql`.
 3. Real room creation, public room list, room entry, and room password hashes.
 4. Participant display-name entry, participant code hashes, and participant session ownership.
 5. Prediction persistence for group standings and match scores, with backend deadline enforcement.

@@ -110,6 +110,8 @@ participant_match_predictions
 score_snapshots
 ```
 
+Initial World Cup 2026 group-stage seed data lives in `apps/api/db/migrations/0002_seed_world_cup_2026_group_stage.sql`.
+
 Room passwords / join codes must be stored as hashes, not plain text.
 
 Participant codes must be stored as hashes, not plain text.

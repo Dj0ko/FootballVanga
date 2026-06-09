@@ -1,0 +1,269 @@
+.detail {
+  display: grid;
+  gap: 16px;
+}
+
+.header,
+.footer {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+}
+
+.header {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.headerTitle {
+  min-width: 0;
+}
+
+.headerTitle p {
+  margin: 0 0 4px;
+  color: #277a50;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.headerTitle h2 {
+  overflow: hidden;
+  margin-bottom: 0;
+  color: #16211b;
+  font-size: 2rem;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.backButton,
+.primaryButton,
+.saveGroupButton,
+.secondaryButton {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-weight: 900;
+}
+
+.backButton,
+.secondaryButton {
+  border: 1px solid #d9dfd4;
+  background: #ffffff;
+  color: #405047;
+}
+
+.primaryButton {
+  border: 0;
+  background: #207d4f;
+  color: #ffffff;
+}
+
+.saveGroupButton {
+  border: 0;
+  background: #f2b84b;
+  color: #1d1b14;
+}
+
+.progressPill {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  border: 1px solid #d9dfd4;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #1f5f3e;
+  font-size: 0.84rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.25fr);
+  gap: 16px;
+}
+
+.panel {
+  min-width: 0;
+  border: 1px solid #d9dfd4;
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #1f5f3e;
+}
+
+.sectionTitle h3 {
+  margin-bottom: 0;
+  font-size: 1rem;
+}
+
+.teamList,
+.matchList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.teamRow {
+  display: grid;
+  min-height: 50px;
+  grid-template-columns: 34px 28px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e2e8df;
+  border-radius: 8px;
+  padding: 0 8px;
+  background: #f9faf7;
+  color: #1f2d25;
+  cursor: grab;
+  touch-action: none;
+}
+
+.teamRow:hover {
+  border-color: #cddbc8;
+  background: #ffffff;
+}
+
+.teamRowDragging {
+  position: relative;
+  z-index: 2;
+  border-color: #f2b84b;
+  background: #ffffff;
+  box-shadow: 0 14px 26px rgba(22, 33, 27, 0.16);
+  cursor: grabbing;
+}
+
+.position {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: #207d4f;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.flag {
+  display: block;
+  width: 26px;
+  height: 18px;
+  border-radius: 3px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(22, 33, 27, 0.14);
+}
+
+.teamName,
+.matchTeam {
+  overflow: hidden;
+  color: #16211b;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dragHint {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  color: #68766d;
+  pointer-events: none;
+}
+
+.matchRow {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #e2e8df;
+  border-radius: 8px;
+  padding: 8px;
+  background: #ffffff;
+}
+
+.matchMeta {
+  overflow: hidden;
+  color: #68766d;
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.scoreLine {
+  display: grid;
+  min-height: 38px;
+  grid-template-columns: minmax(88px, 1fr) 58px 18px 58px minmax(88px, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.matchTeamAway {
+  text-align: right;
+}
+
+.scoreLine input {
+  min-height: 38px;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.scoreDivider {
+  color: #405047;
+  font-weight: 900;
+  text-align: center;
+}
+
+.footer {
+  grid-template-columns: auto auto auto;
+  justify-content: end;
+}
+
+@media (max-width: 900px) {
+  .header,
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .headerTitle h2 {
+    white-space: normal;
+  }
+
+  .backButton,
+  .progressPill {
+    width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .scoreLine {
+    grid-template-columns: minmax(0, 1fr) 48px 14px 48px minmax(0, 1fr);
+  }
+
+  .footer {
+    grid-template-columns: 1fr;
+  }
+
+  .primaryButton,
+  .saveGroupButton,
+  .secondaryButton {
+    width: 100%;
+  }
+}

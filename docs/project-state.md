@@ -49,7 +49,12 @@ The frontend currently has:
   - room stats for participant count, submitted predictions, deadline, and match count;
   - `Мой прогноз` action that opens the mocked group prediction screen.
 - A mocked group prediction screen with all 12 World Cup 2026 groups in a desktop 4-column grid.
-- Drag-and-drop team ordering inside each group using `@dnd-kit`.
+- Overview group cards open a focused group detail screen.
+- Drag-and-drop team ordering inside the active group detail screen using `@dnd-kit`.
+- Match score inputs for the six matches of the active group.
+- A mocked `Сохранить группу` action on the group detail screen.
+- Overview cards show whether each group is still a draft or saved.
+- Overview cards color the `Счета x/6` counter by completion: red for 0-2, yellow for 3-5, green for 6.
 - Team rows show SVG flags imported from the MIT-licensed `flag-icons` package.
 
 The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts`. It does not call the backend yet.
@@ -68,7 +73,8 @@ Current frontend organization:
 - `apps/web/src/screens/room-lobby/components/participants-sidebar` contains the room participants sidebar and its CSS module.
 - `apps/web/src/screens/workspace` contains the mocked prediction workspace and its CSS module.
 - `apps/web/src/screens/workspace/components/group-prediction-board` contains the 12-group prediction board and its CSS module.
-- `apps/web/src/screens/workspace/components/group-prediction-card` contains the sortable group card and its CSS module.
+- `apps/web/src/screens/workspace/components/group-prediction-card` contains the read-only overview group card and its CSS module.
+- `apps/web/src/screens/workspace/components/group-prediction-detail` contains the active group editor with sortable standings, match score inputs, and its CSS module.
 - `apps/web/src/data/teamFlags.ts` imports only the needed tournament flag SVG assets from `flag-icons`.
 - `apps/web/src/styles.css` contains only global base styles.
 
@@ -152,10 +158,23 @@ Current prediction screen decisions:
 - The first `Мой прогноз` screen focuses on predicted final group standings.
 - It shows all 12 World Cup 2026 groups.
 - On desktop, groups use a 4-column grid, which gives the intended 3 rows by 4 groups.
-- Teams can be reordered with drag-and-drop only within the current group.
+- The 12-group overview is read-only for ordering and acts as navigation into a group detail screen.
+- Teams can be reordered with drag-and-drop only inside the active group detail screen.
+- Match scores are entered inside the active group detail screen.
+- The group detail screen has back-to-overview, previous-group, and next-group navigation.
+- The group detail screen has a mocked `Сохранить группу` action.
+- `Сохранить группу` is available even for partially filled groups, so a partial draft can be saved locally.
+- Saving a group marks it as saved in local React state; editing that group's team order or match scores returns it to draft state.
+- Groups with fewer than six filled match scores always display as `Черновик`, even if the current partial group draft was saved.
+- A group displays `Сохранено` only after it has been saved and all six match scores are filled.
+- The overview screen shows saved/draft status per group and a saved-groups counter.
+- The overview `Счета x/6` label is red for 0-2 filled scores, yellow for 3-5, and green for 6/6.
+- Save actions use the warm yellow accent, not the red/destructive color.
 - Team rows show a flag next to each team name.
-- The ordering is stored in local React state for now.
-- Match score prediction controls are deferred to the next step of the prediction flow.
+- Team ordering and match score inputs are stored in local React state for now.
+- Mock group-stage matches now use the documented World Cup 2026 fixture order, dates, venues, and kickoff times.
+- Kickoff times are stored as UTC ISO timestamps and displayed with `Intl.DateTimeFormat` in the browser's current time zone, without repeating a GMT offset in every match row.
+- Before production seed/migrations, fixture data should still be re-verified against FIFA's official schedule.
 
 ## Local Development Notes
 
@@ -215,8 +234,8 @@ Requires explicit user permission:
 Likely next UI/product work:
 
 - Add participant prediction view navigation from the room lobby participants list.
-- Extend `Мой прогноз` into a real step-by-step prediction flow with match score entry.
-- Replace placeholder match fixtures with the World Cup 2026 group-stage match data from `docs/world-cup-2026-data.md`.
+- Connect the mocked group save action to prediction persistence.
+- Verify World Cup 2026 group-stage fixture data against FIFA before production seed/migrations.
 - Connect the mocked room creation form to real backend room creation.
 - Add a rules explanation modal/window.
 - Add read-only participant prediction views.

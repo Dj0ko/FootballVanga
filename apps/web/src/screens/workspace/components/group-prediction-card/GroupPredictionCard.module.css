@@ -1,18 +1,31 @@
 .card {
   display: grid;
-  min-height: 222px;
-  grid-template-rows: auto 1fr;
+  width: 100%;
+  min-height: 260px;
+  grid-template-rows: auto 1fr auto;
   border: 1px solid #dfe5dc;
   border-radius: 8px;
   padding: 12px;
   background: #ffffff;
+  color: #16211b;
+  text-align: left;
 }
 
-.card h3 {
-  margin-bottom: 10px;
+.card:hover {
+  border-color: #cddbc8;
+  background: #fbfcfa;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   color: #16211b;
   font-size: 0.95rem;
+  font-weight: 900;
   line-height: 1.2;
+  margin-bottom: 10px;
 }
 
 .teamList {
@@ -26,7 +39,7 @@
 .teamRow {
   display: grid;
   min-height: 42px;
-  grid-template-columns: 30px 24px minmax(0, 1fr) 34px;
+  grid-template-columns: 30px 24px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   border: 1px solid #e2e8df;
@@ -35,27 +48,6 @@
   background: #f9faf7;
   color: #1f2d25;
   box-shadow: 0 1px 0 rgba(22, 33, 27, 0.04);
-  cursor: grab;
-  touch-action: none;
-}
-
-.teamRow:hover {
-  border-color: #cddbc8;
-  background: #ffffff;
-}
-
-.teamRow:focus-visible {
-  outline: 3px solid rgba(242, 184, 75, 0.45);
-  outline-offset: 2px;
-}
-
-.teamRowDragging {
-  position: relative;
-  z-index: 2;
-  border-color: #f2b84b;
-  background: #ffffff;
-  box-shadow: 0 14px 26px rgba(22, 33, 27, 0.16);
-  cursor: grabbing;
 }
 
 .position {
@@ -88,11 +80,34 @@
   white-space: nowrap;
 }
 
-.dragHint {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
   color: #68766d;
-  pointer-events: none;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.savedStatus {
+  color: #1f5f3e;
+}
+
+.draftStatus {
+  color: #d84d3f;
+}
+
+.scoresLow {
+  color: #d84d3f;
+}
+
+.scoresInProgress {
+  color: #b87917;
+}
+
+.scoresComplete {
+  color: #1f5f3e;
 }

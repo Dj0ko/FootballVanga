@@ -1,8 +1,9 @@
 import { ArrowLeft, Lock, Save } from "lucide-react";
 import { useState } from "react";
 
-import { groups } from "../../data/mockFootball";
+import { groups, initialScores, matches, type MatchScore } from "../../data/mockFootball";
 import { GroupPredictionBoard } from "./components/group-prediction-board/GroupPredictionBoard";
+import { GroupPredictionDetail } from "./components/group-prediction-detail/GroupPredictionDetail";
 import styles from "./WorkspaceScreen.module.css";
 
 type WorkspaceScreenProps = {
@@ -15,13 +16,62 @@ const createInitialGroupOrders = () =>
   Object.fromEntries(groups.map((group) => [group.id, [...group.teams]])) as Record<string, string[]>;
 
 export function WorkspaceScreen({ deadlineLabel, onBackToLobby, roomName }: WorkspaceScreenProps) {
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [groupOrders, setGroupOrders] = useState(createInitialGroupOrders);
+  const [matchScores, setMatchScores] = useState<Record<string, MatchScore>>(initialScores);
+  const [savedGroupIds, setSavedGroupIds] = useState<string[]>([]);
+
+  const activeGroup = groups.find((group) => group.id === activeGroupId) ?? null;
+  const activeGroupIndex = activeGroup ? groups.findIndex((group) => group.id === activeGroup.id) : -1;
+  const activeGroupMatches = activeGroup
+    ? matches
+        .filter((match) => match.id.startsWith(`${activeGroup.id}-`))
+        .sort((leftMatch, rightMatch) => Date.parse(leftMatch.startsAtIso) - Date.parse(rightMatch.startsAtIso))
+    : [];
+  const filledScoresCount = Object.values(matchScores).filter((score) => score.home !== "" && score.away !== "").length;
+  const savedGroupsCount = savedGroupIds.length;
 
   const reorderGroup = (groupId: string, teams: string[]) => {
     setGroupOrders((currentOrders) => ({
       ...currentOrders,
       [groupId]: teams
     }));
+    setSavedGroupIds((currentIds) => currentIds.filter((savedGroupId) => savedGroupId !== groupId));
+  };
+
+  const updateScore = (matchId: string, side: keyof MatchScore, value: number | "") => {
+    const [groupId] = matchId.split("-");
+
+    setMatchScores((currentScores) => ({
+      ...currentScores,
+      [matchId]: {
+        ...(currentScores[matchId] ?? { home: "", away: "" }),
+        [side]: value
+      }
+    }));
+
+    if (groupId) {
+      setSavedGroupIds((currentIds) => currentIds.filter((savedGroupId) => savedGroupId !== groupId));
+    }
+  };
+
+  const saveActiveGroup = () => {
+    if (!activeGroup) {
+      return;
+    }
+
+    setSavedGroupIds((currentIds) =>
+      currentIds.includes(activeGroup.id) ? currentIds : [...currentIds, activeGroup.id]
+    );
+  };
+
+  const openAdjacentGroup = (direction: -1 | 1) => {
+    if (activeGroupIndex === -1) {
+      return;
+    }
+
+    const nextIndex = (activeGroupIndex + direction + groups.length) % groups.length;
+    setActiveGroupId(groups[nextIndex]?.id ?? null);
   };
 
   return (
@@ -54,8 +104,12 @@ export function WorkspaceScreen({ deadlineLabel, onBackToLobby, roomName }: Work
             <strong>Черновик открыт</strong>
           </div>
           <div>
-            <span>Группы</span>
-            <strong>{groups.length} из {groups.length}</strong>
+            <span>Сохранено</span>
+            <strong>{savedGroupsCount} из {groups.length}</strong>
+          </div>
+          <div>
+            <span>Счета</span>
+            <strong>{filledScoresCount} из {matches.length}</strong>
           </div>
           <button type="button" className={styles.saveButton}>
             <Save size={18} aria-hidden="true" />
@@ -63,7 +117,29 @@ export function WorkspaceScreen({ deadlineLabel, onBackToLobby, roomName }: Work
           </button>
         </div>
 
-        <GroupPredictionBoard groups={groups} groupOrders={groupOrders} onReorderGroup={reorderGroup} />
+        {activeGroup ? (
+          <GroupPredictionDetail
+            group={activeGroup}
+            isSaved={savedGroupIds.includes(activeGroup.id)}
+            matches={activeGroupMatches}
+            matchScores={matchScores}
+            teams={groupOrders[activeGroup.id] ?? activeGroup.teams}
+            onBackToOverview={() => setActiveGroupId(null)}
+            onNextGroup={() => openAdjacentGroup(1)}
+            onPreviousGroup={() => openAdjacentGroup(-1)}
+            onSaveGroup={saveActiveGroup}
+            onScoreChange={updateScore}
+            onTeamsChange={(teams) => reorderGroup(activeGroup.id, teams)}
+          />
+        ) : (
+          <GroupPredictionBoard
+            groups={groups}
+            groupOrders={groupOrders}
+            matchScores={matchScores}
+            savedGroupIds={savedGroupIds}
+            onOpenGroup={setActiveGroupId}
+          />
+        )}
       </section>
     </main>
   );

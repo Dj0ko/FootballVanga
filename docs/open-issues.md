@@ -6,28 +6,9 @@ Last updated: 2026-06-10
 
 ## Active Review Findings
 
-### P2: Public Room Creation Needs Spam Prevention
-
-`POST /api/rooms` is currently public and unlimited.
-
-Requirements say Version 1 should include a simple basic spam-prevention control before public VPS deployment.
-
-Status: deferred while the app remains small/local; revisit before public VPS deployment.
-
-Candidate fixes:
-
-- operator-controlled room creation code;
-- IP-based rate limit;
-- max rooms per IP per day;
-- unlisted rooms unless exact link/name is known.
-
-Pick the simplest effective control for Version 1.
+No active review findings are currently blocking the small/local rollout.
 
 ## Product/Data Follow-Ups
-
-### Verify World Cup 2026 Fixtures Before Production
-
-`docs/world-cup-2026-data.md` and the seed migration are current working references, but production deployment should re-check groups, fixtures, venues, and kickoff times against FIFA.
 
 ### Automatic Result Import
 

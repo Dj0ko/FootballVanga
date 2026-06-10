@@ -46,6 +46,8 @@ Production should use the shared server conventions from `server-ops`:
 - Env file: `/etc/footballvanga.env`.
 - Nginx serves the SPA build and proxies API routes to `127.0.0.1:4100`.
 
+Operational deployment steps live in `docs/deployment-runbook.md`.
+
 ## Application Boundaries
 
 ### Frontend

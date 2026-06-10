@@ -82,8 +82,7 @@ Read `docs/open-issues.md` before implementation work.
 
 Currently open:
 
-- P2: public room creation has no spam prevention yet.
-- Before production, verify World Cup 2026 fixture data against FIFA.
+- No active review findings are currently blocking the small/local rollout.
 
 Recently resolved:
 
@@ -123,6 +122,7 @@ Current automated suite covers API behavior for password hashing, rooms, partici
 - Architecture/file map: `docs/architecture-map.md`
 - Product/UI decisions: `docs/product-decisions.md`
 - Open issues: `docs/open-issues.md`
+- Deployment runbook: `docs/deployment-runbook.md`
 - Session history and completed roadmap notes: `docs/session-log.md`
 - Business requirements: `docs/business-requirements.md`
 - Technical requirements: `docs/technical-requirements.md`

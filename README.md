@@ -72,6 +72,12 @@ npm run db:migrate
 
 The migration runner uses `DATABASE_URL` from the API environment and records applied files in `schema_migrations`.
 
+Deployment runbook:
+
+```text
+docs/deployment-runbook.md
+```
+
 ## Admin Result Entry
 
 Manual result entry is available through the hidden admin route:

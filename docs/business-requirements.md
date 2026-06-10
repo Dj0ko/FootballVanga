@@ -20,7 +20,7 @@ Users join password-protected rooms, create a guest display name, submit predict
 - Email, social login, or password recovery.
 - Playoff stage predictions.
 - Public global leaderboard across all rooms.
-- Payments, moderation dashboard, or anti-abuse automation beyond basic creation limits.
+- Payments, moderation dashboard, or anti-abuse automation.
 
 ## Users And Roles
 
@@ -50,7 +50,7 @@ A room creator can:
 - Use the shared tournament prediction deadline calculated by the server.
 - Share room access details with participants.
 
-Room creation should be available to users, but should include basic spam prevention.
+Room creation should be available to users. For the current small/local rollout, room creation does not require extra spam-prevention controls.
 
 ### Admin / Operator
 
@@ -235,21 +235,13 @@ Visible predictions are not editable by other participants. Only the prediction 
 
 Completed group-stage match results/history is visible on the rooms screen, outside any specific room. Official match results are not editable by room participants. Only an operator/admin flow can update result data.
 
-## Room Creation And Spam Prevention
+## Room Creation
 
-Users should be able to create rooms, but the product should avoid becoming an open spam target.
+Users should be able to create rooms.
 
 Each room has its own password / join code. The room creator knows this code and is responsible for sharing it with invited participants.
 
-Potential controls:
-
-- Require a simple creation code controlled by the operator.
-- Rate-limit room creation by IP address.
-- Add a lightweight admin approval step.
-- Keep rooms unlisted unless accessed by direct link or exact room name.
-- Add a maximum number of rooms per IP per day.
-
-The first implementation should choose the simplest effective control.
+Additional anti-abuse controls are out of scope for the current small/local rollout and can be revisited if usage grows.
 
 ## UI Direction
 

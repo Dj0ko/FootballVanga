@@ -12,7 +12,7 @@ Sources:
 
 The seed migration lives at `apps/api/db/migrations/0002_seed_world_cup_2026_group_stage.sql`.
 
-Before production deployment, verify this data again against FIFA's official schedule.
+The checked data is accepted as the Version 1 rollout source of truth.
 
 ## Groups
 

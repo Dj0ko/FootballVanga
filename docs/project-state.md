@@ -82,13 +82,13 @@ Read `docs/open-issues.md` before implementation work.
 
 Currently open:
 
-- P2: empty request bodies return `500` on several endpoints instead of validation errors.
 - P2: public room creation has no spam prevention yet.
-- P2: PostgreSQL participant creation has a same-display-name race condition.
 - Before production, verify World Cup 2026 fixture data against FIFA.
 
 Recently resolved:
 
+- P2 PostgreSQL participant creation race was fixed: duplicate display-name insert conflicts now produce controlled participant entry behavior.
+- P2 empty request bodies were fixed: known affected endpoints now handle missing payloads with validation/auth responses.
 - P1 group-standing scoring gap was fixed: official standings can now be saved by the operator and scored.
 
 ## Local Policy

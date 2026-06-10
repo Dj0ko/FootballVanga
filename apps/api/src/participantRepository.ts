@@ -26,6 +26,13 @@ export type ParticipantRepository = {
   listParticipants: (roomId: string) => Promise<ParticipantSummary[]>;
 };
 
+export class ParticipantDisplayNameAlreadyTakenError extends Error {
+  constructor() {
+    super("Participant display name is already taken.");
+    this.name = "ParticipantDisplayNameAlreadyTakenError";
+  }
+}
+
 type ParticipantRow = {
   display_name: string;
   exact_score_hits: number | null;
@@ -60,6 +67,23 @@ const participantPredictionStatusSql = `
   END AS prediction_status
 `;
 
+type DatabaseErrorLike = {
+  code?: string;
+  constraint?: string;
+};
+
+const isDatabaseErrorLike = (error: unknown): error is DatabaseErrorLike =>
+  typeof error === "object" && error !== null;
+
+const isParticipantDisplayNameUniqueViolation = (error: unknown) =>
+  isDatabaseErrorLike(error) &&
+  error.code === "23505" &&
+  error.constraint === "participants_room_display_name_unique";
+
+export const isParticipantDisplayNameAlreadyTakenError = (
+  error: unknown
+): error is ParticipantDisplayNameAlreadyTakenError => error instanceof ParticipantDisplayNameAlreadyTakenError;
+
 export const createParticipantRepository = (pool: DatabasePool): ParticipantRepository => {
   const listParticipants = async (roomId: string) => {
     const result = await pool.query<ParticipantRow>(
@@ -82,14 +106,22 @@ export const createParticipantRepository = (pool: DatabasePool): ParticipantRepo
   };
 
   const createParticipant: ParticipantRepository["createParticipant"] = async ({ codeHash, displayName, roomId }) => {
-    const result = await pool.query<ParticipantRow>(
-      `
-        INSERT INTO participants (room_id, display_name, code_hash)
-        VALUES ($1, $2, $3)
-        RETURNING id, display_name, 0 AS total_score, 0 AS exact_score_hits, 'empty' AS prediction_status
-      `,
-      [roomId, displayName, codeHash]
-    );
+    const result = await pool
+      .query<ParticipantRow>(
+        `
+          INSERT INTO participants (room_id, display_name, code_hash)
+          VALUES ($1, $2, $3)
+          RETURNING id, display_name, 0 AS total_score, 0 AS exact_score_hits, 'empty' AS prediction_status
+        `,
+        [roomId, displayName, codeHash]
+      )
+      .catch((error: unknown) => {
+        if (isParticipantDisplayNameUniqueViolation(error)) {
+          throw new ParticipantDisplayNameAlreadyTakenError();
+        }
+
+        throw error;
+      });
     const participant = result.rows[0];
 
     if (!participant) {

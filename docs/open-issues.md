@@ -6,27 +6,13 @@ Last updated: 2026-06-10
 
 ## Active Review Findings
 
-### P2: Empty Request Bodies Return 500
-
-Several endpoints read `request.body.*` without a safe fallback to `{}`. Missing payloads currently produce internal server errors instead of validation responses.
-
-Known affected endpoints:
-
-- `POST /api/rooms`
-- `POST /api/rooms/:roomId/enter`
-- `POST /api/rooms/:roomId/participants/enter`
-- configured `POST /api/admin/login`
-
-Expected fix:
-
-- Use `request.body ?? {}` before reading fields.
-- Add route tests for missing payloads returning `400` or the existing intended auth/validation status.
-
 ### P2: Public Room Creation Needs Spam Prevention
 
 `POST /api/rooms` is currently public and unlimited.
 
 Requirements say Version 1 should include a simple basic spam-prevention control before public VPS deployment.
+
+Status: deferred while the app remains small/local; revisit before public VPS deployment.
 
 Candidate fixes:
 
@@ -36,21 +22,6 @@ Candidate fixes:
 - unlisted rooms unless exact link/name is known.
 
 Pick the simplest effective control for Version 1.
-
-### P2: Participant Creation Race
-
-PostgreSQL participant creation has a check-then-insert race:
-
-1. Two requests use the same new display name in the same room.
-2. Both can pass `getParticipantByDisplayName`.
-3. One insert wins; the other can fail on the unique index.
-4. The loser likely returns `500` instead of a controlled participant-name/code error.
-
-Expected fix:
-
-- Catch unique-constraint errors around participant insert, or use an atomic insert/upsert flow.
-- Return a clear `409` or existing user-facing validation error.
-- Add a repository or route-level test.
 
 ## Product/Data Follow-Ups
 
@@ -69,6 +40,30 @@ Open questions:
 - How to reconcile imported corrections with manual overrides?
 
 ## Recently Resolved
+
+### P2: PostgreSQL Participant Creation Race
+
+Resolved on 2026-06-10.
+
+PostgreSQL display-name unique violations are now mapped to a domain error. The participant entry route handles the race by re-reading the participant: matching participant codes log in normally, while mismatched codes return the existing user-facing invalid-code response.
+
+Covered by:
+
+- route test for a concurrent display-name creation conflict;
+- repository test for mapping the PostgreSQL unique-index violation.
+
+### P2: Empty Request Bodies Returned 500
+
+Resolved on 2026-06-10.
+
+Known affected routes now use `request.body ?? {}` before reading fields:
+
+- `POST /api/rooms`
+- `POST /api/rooms/:roomId/enter`
+- `POST /api/rooms/:roomId/participants/enter`
+- configured `POST /api/admin/login`
+
+Covered by route tests for missing payloads returning validation or authentication responses.
 
 ### P1: Official Group Standings Were Not Saved
 

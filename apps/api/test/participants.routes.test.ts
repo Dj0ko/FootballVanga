@@ -4,8 +4,14 @@ import test from "node:test";
 import type { ParticipantSummary, RoomSummary } from "@footballvanga/shared";
 
 import { buildServer } from "../src/index.ts";
+import type { DatabasePool } from "../src/database.ts";
 import { hashPassword, verifyPassword } from "../src/passwordHash.ts";
-import type { ParticipantRepository, ParticipantRecord } from "../src/participantRepository.ts";
+import {
+  createParticipantRepository,
+  ParticipantDisplayNameAlreadyTakenError,
+  type ParticipantRepository,
+  type ParticipantRecord
+} from "../src/participantRepository.ts";
 import type { RoomRepository } from "../src/roomRepository.ts";
 import { hashParticipantSessionToken } from "../src/sessionToken.ts";
 
@@ -69,6 +75,10 @@ test("POST /api/rooms/:roomId/participants/enter validates participant input", a
     await app.close();
   });
 
+  const missingBodyResponse = await app.inject({
+    method: "POST",
+    url: `/api/rooms/${room.id}/participants/enter`
+  });
   const blankNameResponse = await enterParticipant(app, {
     displayName: "   ",
     roomId: room.id
@@ -82,6 +92,10 @@ test("POST /api/rooms/:roomId/participants/enter validates participant input", a
     roomPassword: "123"
   });
 
+  assert.equal(missingBodyResponse.statusCode, 400);
+  assert.deepEqual(readJson(missingBodyResponse.body), {
+    message: "Participant display name is required."
+  });
   assert.equal(blankNameResponse.statusCode, 400);
   assert.deepEqual(readJson(blankNameResponse.body), {
     message: "Participant display name is required."
@@ -245,6 +259,101 @@ test("participant entry reuses display names only with the matching participant 
   assert.equal(returningEntry.participant.id, firstEntry.participant.id);
   assert.equal(returningEntry.participants.length, 1);
   assert.equal(roomsBody.rooms[0]?.participantCount, 1);
+});
+
+test("participant entry handles concurrent display name creation conflicts", async (t) => {
+  const roomPasswordHash = await hashPassword("room-pass");
+  const participantCodeHash = await hashPassword("2222");
+  const participantSessions: Array<{ expiresAt: Date; participantId: string; tokenHash: string }> = [];
+  const existingParticipant: ParticipantRecord = {
+    codeHash: participantCodeHash,
+    displayName: "Алексей",
+    id: "participant-1"
+  };
+  let displayNameLookupCount = 0;
+  const roomRepository: RoomRepository = {
+    createRoom: async () => {
+      throw new Error("Unexpected room creation.");
+    },
+    getRoomById: async (roomId) =>
+      roomId === "room-1"
+        ? {
+            id: "room-1",
+            password_hash: roomPasswordHash
+          }
+        : null,
+    listRooms: async () => []
+  };
+  const participantRepository: ParticipantRepository = {
+    createParticipant: async () => {
+      throw new ParticipantDisplayNameAlreadyTakenError();
+    },
+    createParticipantSession: async (input) => {
+      participantSessions.push(input);
+    },
+    getParticipantByDisplayName: async ({ displayName, roomId }) => {
+      displayNameLookupCount += 1;
+
+      if (roomId !== "room-1" || displayName !== "Алексей") {
+        return null;
+      }
+
+      return displayNameLookupCount === 1 ? null : existingParticipant;
+    },
+    getParticipantBySessionTokenHash: async () => null,
+    listParticipants: async () => [
+      {
+        displayName: existingParticipant.displayName,
+        exactScoreHits: 0,
+        id: existingParticipant.id,
+        predictionStatus: "empty",
+        totalScore: 0
+      }
+    ]
+  };
+  const app = await buildServer(baseConfig, {
+    participantRepository,
+    roomRepository
+  });
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  const response = await enterParticipant(app, {
+    code: "2222",
+    displayName: "Алексей",
+    roomId: "room-1"
+  });
+  const body = readJson<EnterParticipantResponse>(response.body);
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(displayNameLookupCount, 2);
+  assert.equal(body.participant.id, existingParticipant.id);
+  assert.equal(body.participants.length, 1);
+  assert.equal(body.session.participantId, existingParticipant.id);
+  assert.equal(participantSessions.length, 1);
+});
+
+test("PostgreSQL participant repository maps display name unique violations", async () => {
+  const duplicateError = Object.assign(new Error("duplicate participant"), {
+    code: "23505",
+    constraint: "participants_room_display_name_unique"
+  });
+  const repository = createParticipantRepository({
+    query: async () => {
+      throw duplicateError;
+    }
+  } as unknown as DatabasePool);
+
+  await assert.rejects(
+    repository.createParticipant({
+      codeHash: "hashed-code",
+      displayName: "Алексей",
+      roomId: "room-1"
+    }),
+    ParticipantDisplayNameAlreadyTakenError
+  );
 });
 
 test("GET /api/rooms/:roomId/participants requires a participant session", async (t) => {

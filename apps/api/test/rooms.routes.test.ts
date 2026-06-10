@@ -167,6 +167,10 @@ test("POST /api/rooms validates room input", async (t) => {
     await app.close();
   });
 
+  const missingBodyResponse = await app.inject({
+    method: "POST",
+    url: "/api/rooms"
+  });
   const blankNameResponse = await app.inject({
     method: "POST",
     payload: {
@@ -184,6 +188,10 @@ test("POST /api/rooms validates room input", async (t) => {
     url: "/api/rooms"
   });
 
+  assert.equal(missingBodyResponse.statusCode, 400);
+  assert.deepEqual(readJson(missingBodyResponse.body), {
+    message: "Room name is required."
+  });
   assert.equal(blankNameResponse.statusCode, 400);
   assert.deepEqual(readJson(blankNameResponse.body), {
     message: "Room name is required."
@@ -240,6 +248,10 @@ test("POST /api/rooms/:roomId/enter verifies room passwords", async (t) => {
     await app.close();
   });
 
+  const missingBodyResponse = await app.inject({
+    method: "POST",
+    url: "/api/rooms/room-1/enter"
+  });
   const successResponse = await app.inject({
     method: "POST",
     payload: {
@@ -262,6 +274,10 @@ test("POST /api/rooms/:roomId/enter verifies room passwords", async (t) => {
     url: "/api/rooms/missing-room/enter"
   });
 
+  assert.equal(missingBodyResponse.statusCode, 400);
+  assert.deepEqual(readJson(missingBodyResponse.body), {
+    message: "Room password must be at least 4 characters."
+  });
   assert.equal(successResponse.statusCode, 200);
   assert.deepEqual(readJson(successResponse.body), {
     ok: true,

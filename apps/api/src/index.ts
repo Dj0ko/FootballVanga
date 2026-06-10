@@ -29,7 +29,12 @@ import { createInMemoryPredictionRepository } from "./inMemoryPredictionReposito
 import { createInMemoryFootballStore, createInMemoryRoomRepository } from "./inMemoryRoomRepository.js";
 import { createInMemoryScoringRepository } from "./inMemoryScoringRepository.js";
 import { createMatchResultRepository, type MatchResultRepository } from "./matchResultRepository.js";
-import { createParticipantRepository, type ParticipantRepository } from "./participantRepository.js";
+import {
+  createParticipantRepository,
+  isParticipantDisplayNameAlreadyTakenError,
+  type ParticipantRecord,
+  type ParticipantRepository
+} from "./participantRepository.js";
 import { hashPassword, verifyPassword } from "./passwordHash.js";
 import { createPredictionRepository, type PredictionRepository } from "./predictionRepository.js";
 import { createRoomRepository, type RoomRepository } from "./roomRepository.js";
@@ -124,6 +129,14 @@ const getBearerToken = (authorizationHeader: string | undefined) => {
 
   return scheme?.toLocaleLowerCase("en-US") === "bearer" && token ? token : null;
 };
+
+const toExistingParticipantSummary = (participant: ParticipantRecord): ParticipantSummary => ({
+  displayName: participant.displayName,
+  exactScoreHits: 0,
+  id: participant.id,
+  predictionStatus: "empty",
+  totalScore: 0
+});
 
 const getAuthenticatedParticipant = async (
   participantRepository: ParticipantRepository,
@@ -563,8 +576,9 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
       };
     }
 
-    const name = request.body.name?.trim() ?? "";
-    const password = request.body.password ?? "";
+    const body = request.body ?? {};
+    const name = body.name?.trim() ?? "";
+    const password = body.password ?? "";
 
     if (!name) {
       reply.code(400);
@@ -599,7 +613,8 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
       };
     }
 
-    const password = request.body.password ?? "";
+    const body = request.body ?? {};
+    const password = body.password ?? "";
 
     if (password.length < MIN_ROOM_PASSWORD_LENGTH) {
       reply.code(400);
@@ -640,9 +655,10 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
         };
       }
 
-      const displayName = request.body.displayName?.trim() ?? "";
-      const code = request.body.code ?? "";
-      const roomPassword = request.body.roomPassword ?? "";
+      const body = request.body ?? {};
+      const displayName = body.displayName?.trim() ?? "";
+      const code = body.code ?? "";
+      const roomPassword = body.roomPassword ?? "";
 
       if (!displayName) {
         reply.code(400);
@@ -696,20 +712,34 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
           };
         }
 
-        participant = {
-          displayName: existingParticipant.displayName,
-          exactScoreHits: 0,
-          id: existingParticipant.id,
-          predictionStatus: "empty",
-          totalScore: 0
-        };
+        participant = toExistingParticipantSummary(existingParticipant);
       } else {
-        participant = await resolvedParticipantRepository.createParticipant({
-          codeHash: await hashPassword(code),
-          displayName,
-          roomId: room.id
-        });
-        isCreated = true;
+        try {
+          participant = await resolvedParticipantRepository.createParticipant({
+            codeHash: await hashPassword(code),
+            displayName,
+            roomId: room.id
+          });
+          isCreated = true;
+        } catch (error) {
+          if (!isParticipantDisplayNameAlreadyTakenError(error)) {
+            throw error;
+          }
+
+          const conflictingParticipant = await resolvedParticipantRepository.getParticipantByDisplayName({
+            displayName,
+            roomId: room.id
+          });
+
+          if (!conflictingParticipant || !(await verifyPassword(code, conflictingParticipant.codeHash))) {
+            reply.code(401);
+            return {
+              message: "Invalid participant code."
+            };
+          }
+
+          participant = toExistingParticipantSummary(conflictingParticipant);
+        }
       }
 
       const session = await createParticipantSession(resolvedParticipantRepository, participant);
@@ -944,7 +974,8 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
       };
     }
 
-    const password = request.body.password;
+    const body = request.body ?? {};
+    const password = body.password;
 
     if (!password || !(await verifyAdminPassword(password, config.adminPasswordHash))) {
       reply.code(401);

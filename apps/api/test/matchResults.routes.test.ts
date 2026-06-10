@@ -75,6 +75,10 @@ test("admin match result writes require admin configuration and session", async 
     await configuredApp.close();
   });
 
+  const missingLoginBodyResponse = await configuredApp.inject({
+    method: "POST",
+    url: "/api/admin/login"
+  });
   const unconfiguredResponse = await unconfiguredApp.inject({
     method: "PUT",
     payload: {
@@ -92,6 +96,10 @@ test("admin match result writes require admin configuration and session", async 
     url: "/api/admin/matches/a-1/result"
   });
 
+  assert.equal(missingLoginBodyResponse.statusCode, 401);
+  assert.deepEqual(readJson(missingLoginBodyResponse.body), {
+    message: "Invalid admin password."
+  });
   assert.equal(unconfiguredResponse.statusCode, 503);
   assert.deepEqual(readJson(unconfiguredResponse.body), {
     message: "Admin access is not configured."

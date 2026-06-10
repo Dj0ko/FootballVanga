@@ -21,6 +21,8 @@ import {
 } from "./adminAuth.js";
 import { type ApiConfig, readConfig } from "./config.js";
 import { createDatabasePool } from "./database.js";
+import { createGroupStandingResultRepository, type GroupStandingResultRepository } from "./groupStandingResultRepository.js";
+import { createInMemoryGroupStandingResultRepository } from "./inMemoryGroupStandingResultRepository.js";
 import { createInMemoryMatchResultRepository } from "./inMemoryMatchResultRepository.js";
 import { createInMemoryParticipantRepository } from "./inMemoryParticipantRepository.js";
 import { createInMemoryPredictionRepository } from "./inMemoryPredictionRepository.js";
@@ -53,6 +55,10 @@ type AdminResultBody = {
   home?: number;
 };
 
+type AdminGroupStandingsBody = {
+  standings?: unknown;
+};
+
 type CreateRoomBody = {
   name?: string;
   password?: string;
@@ -78,6 +84,7 @@ type GlobalLeaderboardQuery = {
 };
 
 type BuildServerDependencies = {
+  groupStandingResultRepository?: GroupStandingResultRepository | null;
   matchResultRepository?: MatchResultRepository | null;
   participantRepository?: ParticipantRepository | null;
   predictionRepository?: PredictionRepository | null;
@@ -259,6 +266,78 @@ const validatePredictionBody = (
   };
 };
 
+const validateGroupStandingResultsBody = (
+  body: AdminGroupStandingsBody,
+  input: {
+    groupId: string;
+    teamIds: string[];
+  }
+):
+  | {
+      standings: GroupStandingPrediction[];
+    }
+  | {
+      message: string;
+    } => {
+  if (!Array.isArray(body.standings)) {
+    return {
+      message: "Group standings are required."
+    };
+  }
+
+  if (body.standings.length !== input.teamIds.length) {
+    return {
+      message: "Group standings must include every team in the group."
+    };
+  }
+
+  const teamIds = new Set(input.teamIds);
+  const seenTeamIds = new Set<string>();
+  const seenPositions = new Set<number>();
+  const standings: GroupStandingPrediction[] = [];
+
+  for (const standing of body.standings) {
+    if (!isObjectRecord(standing)) {
+      return {
+        message: "Group standings are invalid."
+      };
+    }
+
+    const teamId = standing.teamId;
+    const position = standing.position;
+
+    if (typeof teamId !== "string" || typeof position !== "number" || !Number.isInteger(position)) {
+      return {
+        message: "Group standings are invalid."
+      };
+    }
+
+    if (!teamIds.has(teamId) || position < 1 || position > input.teamIds.length) {
+      return {
+        message: "Group standings are invalid."
+      };
+    }
+
+    if (seenTeamIds.has(teamId) || seenPositions.has(position)) {
+      return {
+        message: "Group standings contain duplicates."
+      };
+    }
+
+    seenTeamIds.add(teamId);
+    seenPositions.add(position);
+    standings.push({
+      groupId: input.groupId,
+      position,
+      teamId
+    });
+  }
+
+  return {
+    standings: standings.sort((leftStanding, rightStanding) => leftStanding.position - rightStanding.position)
+  };
+};
+
 const createParticipantSession = async (
   participantRepository: ParticipantRepository,
   participant: ParticipantSummary
@@ -281,6 +360,7 @@ const createParticipantSession = async (
 
 export const buildServer = async (config: ApiConfig = readConfig(), dependencies: BuildServerDependencies = {}) => {
   const shouldCreateStorage =
+    dependencies.groupStandingResultRepository === undefined &&
     dependencies.matchResultRepository === undefined &&
     dependencies.roomRepository === undefined &&
     dependencies.participantRepository === undefined &&
@@ -316,6 +396,13 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
         ? createInMemoryMatchResultRepository(inMemoryStore)
         : null
     : null;
+  const groupStandingResultRepository = shouldCreateStorage
+    ? databasePool
+      ? createGroupStandingResultRepository(databasePool)
+      : inMemoryStore
+        ? createInMemoryGroupStandingResultRepository(inMemoryStore)
+        : null
+    : null;
   const scoringRepository = shouldCreateStorage
     ? databasePool
       ? createScoringRepository(databasePool)
@@ -330,6 +417,10 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
     : null;
   const resolvedMatchResultRepository =
     dependencies.matchResultRepository === undefined ? matchResultRepository : dependencies.matchResultRepository;
+  const resolvedGroupStandingResultRepository =
+    dependencies.groupStandingResultRepository === undefined
+      ? groupStandingResultRepository
+      : dependencies.groupStandingResultRepository;
   const resolvedRoomRepository = dependencies.roomRepository === undefined ? roomRepository : dependencies.roomRepository;
   const resolvedParticipantRepository =
     dependencies.participantRepository === undefined ? participantRepository : dependencies.participantRepository;
@@ -882,6 +973,102 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
       ok: true
     };
   });
+
+  app.get("/api/admin/group-standings", async (request, reply) => {
+    if (!isAdminConfigured(config)) {
+      reply.code(503);
+      return {
+        message: "Admin access is not configured."
+      };
+    }
+
+    if (!hasAdminSession(config, request.headers.cookie)) {
+      reply.code(401);
+      return {
+        message: "Admin session is required."
+      };
+    }
+
+    if (!resolvedGroupStandingResultRepository) {
+      reply.code(503);
+      return {
+        message: "Group standing result storage is not configured."
+      };
+    }
+
+    return {
+      standings: await resolvedGroupStandingResultRepository.listGroupStandingResults()
+    };
+  });
+
+  app.put<{ Body: AdminGroupStandingsBody; Params: { groupId: string } }>(
+    "/api/admin/groups/:groupId/standings",
+    async (request, reply) => {
+      if (!isAdminConfigured(config)) {
+        reply.code(503);
+        return {
+          message: "Admin access is not configured."
+        };
+      }
+
+      if (!hasAdminSession(config, request.headers.cookie)) {
+        reply.code(401);
+        return {
+          message: "Admin session is required."
+        };
+      }
+
+      if (!resolvedGroupStandingResultRepository || !resolvedPredictionRepository) {
+        reply.code(503);
+        return {
+          message: "Group standing result storage is not configured."
+        };
+      }
+
+      const metadata = await resolvedPredictionRepository.getTournamentMetadata();
+      const teamIds = metadata.groupTeamIds[request.params.groupId];
+
+      if (!teamIds) {
+        reply.code(404);
+        return {
+          message: "Group was not found."
+        };
+      }
+
+      const validationResult = validateGroupStandingResultsBody(request.body ?? {}, {
+        groupId: request.params.groupId,
+        teamIds
+      });
+
+      if ("message" in validationResult) {
+        reply.code(400);
+        return {
+          message: validationResult.message
+        };
+      }
+
+      const standings = await resolvedGroupStandingResultRepository.saveGroupStandingResults({
+        groupId: request.params.groupId,
+        standings: validationResult.standings
+      });
+
+      if (!standings) {
+        reply.code(404);
+        return {
+          message: "Group was not found."
+        };
+      }
+
+      if (resolvedScoringRepository) {
+        await resolvedScoringRepository.recalculateScores();
+      }
+
+      return {
+        ok: true,
+        standings
+      };
+    }
+  );
 
   app.put<{ Body: AdminResultBody; Params: { matchId: string } }>(
     "/api/admin/matches/:matchId/result",

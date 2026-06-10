@@ -143,6 +143,52 @@ test("admin match result writes validate scores and known matches", async (t) =>
   });
 });
 
+test("admin group standing writes require admin session and validate standings", async (t) => {
+  const app = await buildAdminApp();
+  const adminCookie = await getAdminCookie(app);
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  const missingSessionResponse = await app.inject({
+    method: "PUT",
+    payload: {
+      standings: [
+        { position: 1, teamId: "mexico" },
+        { position: 2, teamId: "south-africa" },
+        { position: 3, teamId: "korea-republic" },
+        { position: 4, teamId: "czechia" }
+      ]
+    },
+    url: "/api/admin/groups/a/standings"
+  });
+  const duplicateTeamResponse = await app.inject({
+    headers: {
+      cookie: adminCookie
+    },
+    method: "PUT",
+    payload: {
+      standings: [
+        { position: 1, teamId: "mexico" },
+        { position: 2, teamId: "mexico" },
+        { position: 3, teamId: "korea-republic" },
+        { position: 4, teamId: "czechia" }
+      ]
+    },
+    url: "/api/admin/groups/a/standings"
+  });
+
+  assert.equal(missingSessionResponse.statusCode, 401);
+  assert.deepEqual(readJson(missingSessionResponse.body), {
+    message: "Admin session is required."
+  });
+  assert.equal(duplicateTeamResponse.statusCode, 400);
+  assert.deepEqual(readJson(duplicateTeamResponse.body), {
+    message: "Group standings contain duplicates."
+  });
+});
+
 test("admin match result writes persist to public match history", async (t) => {
   const app = await buildAdminApp();
   const adminCookie = await getAdminCookie(app);

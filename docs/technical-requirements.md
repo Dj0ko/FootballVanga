@@ -168,6 +168,8 @@ GET  /api/match-history
 GET  /api/admin/session
 POST /api/admin/login
 POST /api/admin/logout
+GET  /api/admin/group-standings
+PUT  /api/admin/groups/:groupId/standings
 PUT  /api/admin/matches/:matchId/result
 POST /api/admin/scoring/recalculate
 ```
@@ -187,6 +189,8 @@ Current room endpoints use the same API shape in both storage modes:
 - `GET /api/rooms/:roomId/leaderboard` returns the room leaderboard only when called with a valid participant session bearer token for that room.
 - `GET /api/leaderboard/global` returns the public top players across rooms, filtered to participants with positive score and ordered by total points, exact score hits, and creation order.
 - `GET /api/leaderboard/global/:roomId/predictions/:participantId` returns a public read-only prediction only after the shared deadline and only for current global top-5 entries.
+- `GET /api/admin/group-standings` returns operator-only official group-standing results for the hidden admin result screen.
+- `PUT /api/admin/groups/:groupId/standings` saves operator-only official final team order for one group and triggers scoring recalculation when scoring storage is configured.
 - `POST /api/admin/scoring/recalculate` recalculates score snapshots through operator-only admin authorization.
 
 When `DATABASE_URL` is configured, room storage is PostgreSQL-backed and expects applied migrations.
@@ -239,7 +243,7 @@ Run automated tests:
 npm test
 ```
 
-The current test suite covers shared password hashing, room API route behavior, participant entry/session behavior, prediction read/write/deadline behavior, match result/admin behavior, scoring recalculation, room leaderboard behavior, global leaderboard/public leader prediction behavior, tournament endpoint behavior with Fastify injection, and World Cup 2026 seed migration invariants.
+The current test suite covers shared password hashing, room API route behavior, participant entry/session behavior, prediction read/write/deadline behavior, match result/admin behavior, official group-standing writes and group-position scoring, scoring recalculation, room leaderboard behavior, global leaderboard/public leader prediction behavior, tournament endpoint behavior with Fastify injection, and World Cup 2026 seed migration invariants.
 
 Run database migrations:
 
@@ -287,7 +291,7 @@ npm run admin:session-secret
 3. Real room creation, public room list, room entry, and room password hashes. Completed as API-backed room endpoints with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 4. Participant display-name entry, participant code hashes, and participant session ownership. Completed as API-backed participant entry with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 5. Prediction persistence for group standings and match scores, with backend deadline enforcement. Completed as API-backed prediction reads/writes with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
-6. PostgreSQL-backed match results from the hidden admin result-entry screen. Completed as API-backed result reads/writes with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
+6. PostgreSQL-backed match results and official group-standing results from the hidden admin result-entry screen. Completed as API-backed result reads/writes with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 7. Scoring recalculation and room/global leaderboards. Completed as PostgreSQL-backed `score_snapshots`, in-memory fallback scoring, admin-triggered recalculation, automatic recalculation after prediction/result writes, a participant-session-protected room leaderboard endpoint, and a public global top-5 leaderboard with post-deadline public prediction views.
 8. Deployment hardening on the VPS.
 9. Scheduled automatic result import.

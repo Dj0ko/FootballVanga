@@ -107,6 +107,7 @@
 }
 
 .toolbar,
+.standingsPanel,
 .resultsPanel {
   border: 1px solid #d9dfd4;
   border-radius: 8px;
@@ -120,6 +121,111 @@
   gap: 14px;
   margin-bottom: 14px;
   padding: 16px;
+}
+
+.standingsPanel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 16px;
+}
+
+.standingsHeader,
+.standingCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.standingsHeader h2,
+.standingCardHeader h3 {
+  margin: 0;
+  color: #16211b;
+  line-height: 1.1;
+}
+
+.standingsHeader h2 {
+  font-size: 1.22rem;
+}
+
+.standingsHeader svg {
+  color: #207d4f;
+}
+
+.standingsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.standingCard {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #e2e8df;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfdf9;
+}
+
+.standingCardHeader {
+  align-items: flex-start;
+}
+
+.standingCardHeader h3 {
+  padding-top: 10px;
+  font-size: 0.98rem;
+}
+
+.standingList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.standingTeam {
+  display: grid;
+  min-height: 42px;
+  grid-template-columns: 28px 26px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #d9dfd4;
+  border-radius: 8px;
+  padding: 8px 9px;
+  background: #ffffff;
+  color: #16211b;
+  touch-action: none;
+}
+
+.standingTeamDragging {
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 12px 24px rgba(22, 33, 27, 0.16);
+}
+
+.standingPosition {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 999px;
+  background: #e8f5ee;
+  color: #207d4f;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.standingTeamName {
+  overflow: hidden;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.standingTeam svg {
+  color: #68766d;
 }
 
 .resultsPanel {
@@ -266,8 +372,13 @@
 
   .topbar,
   .toolbar,
+  .standingCardHeader,
   .matchRow {
     grid-template-columns: 1fr;
+  }
+
+  .standingCardHeader {
+    display: grid;
   }
 
   .titleBlock h1 {

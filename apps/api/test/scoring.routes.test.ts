@@ -3,12 +3,14 @@ import test from "node:test";
 
 import type {
   GlobalLeaderboardEntry,
+  GroupStandingPrediction,
   ParticipantPrediction,
   ParticipantSummary,
   RoomSummary
 } from "@footballvanga/shared";
 
 import { hashAdminPassword } from "../src/adminAuth.ts";
+import { createInMemoryGroupStandingResultRepository } from "../src/inMemoryGroupStandingResultRepository.ts";
 import { createInMemoryMatchResultRepository } from "../src/inMemoryMatchResultRepository.ts";
 import { createInMemoryParticipantRepository } from "../src/inMemoryParticipantRepository.ts";
 import { createInMemoryPredictionRepository } from "../src/inMemoryPredictionRepository.ts";
@@ -48,6 +50,11 @@ type PublicPredictionResponse = {
   prediction: ParticipantPrediction;
 };
 
+type AdminGroupStandingsResponse = {
+  ok?: boolean;
+  standings: GroupStandingPrediction[];
+};
+
 type RecalculateResponse = {
   ok: boolean;
   recalculatedParticipants: number;
@@ -70,6 +77,7 @@ const buildScoringAppWithStore = async (
       adminSessionSecret: "test-admin-session-secret"
     },
     {
+      groupStandingResultRepository: createInMemoryGroupStandingResultRepository(store),
       matchResultRepository: createInMemoryMatchResultRepository(store),
       participantRepository: createInMemoryParticipantRepository(store),
       predictionRepository: createInMemoryPredictionRepository(store),
@@ -153,6 +161,7 @@ const enterParticipant = async (
 const savePrediction = async (
   app: Awaited<ReturnType<typeof buildServer>>,
   input: {
+    groupStandings?: GroupStandingPrediction[];
     matchScores: Array<{
       matchId: string;
       score: {
@@ -170,13 +179,40 @@ const savePrediction = async (
     },
     method: "PUT",
     payload: {
-      groupStandings: [],
+      groupStandings: input.groupStandings ?? [],
       matchScores: input.matchScores
     },
     url: `/api/rooms/${input.roomId}/predictions/me`
   });
 
   assert.equal(response.statusCode, 200);
+};
+
+const saveGroupStandings = async (
+  app: Awaited<ReturnType<typeof buildServer>>,
+  input: {
+    adminCookie: string;
+    groupId: string;
+    teamIds: string[];
+  }
+) => {
+  const response = await app.inject({
+    headers: {
+      cookie: input.adminCookie
+    },
+    method: "PUT",
+    payload: {
+      standings: input.teamIds.map((teamId, index) => ({
+        position: index + 1,
+        teamId
+      }))
+    },
+    url: `/api/admin/groups/${input.groupId}/standings`
+  });
+
+  assert.equal(response.statusCode, 200);
+
+  return readJson<AdminGroupStandingsResponse>(response.body);
 };
 
 const saveMatchResult = async (
@@ -300,6 +336,77 @@ test("room leaderboard requires participant access and ranks by points then exac
       }
     ]
   );
+});
+
+test("admin group standings writes persist and award group position points", async (t) => {
+  const app = await buildScoringApp();
+  const room = await createRoom(app);
+  const entry = await enterParticipant(app, {
+    code: "1111",
+    displayName: "Standings Prophet",
+    roomId: room.id
+  });
+  const adminCookie = await getAdminCookie(app);
+  const groupStandings: GroupStandingPrediction[] = [
+    { groupId: "a", position: 1, teamId: "mexico" },
+    { groupId: "a", position: 2, teamId: "south-africa" },
+    { groupId: "a", position: 3, teamId: "korea-republic" },
+    { groupId: "a", position: 4, teamId: "czechia" }
+  ];
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  await savePrediction(app, {
+    groupStandings,
+    matchScores: [],
+    roomId: room.id,
+    token: entry.session.token
+  });
+
+  const initialLeaderboardResponse = await app.inject({
+    headers: {
+      Authorization: `Bearer ${entry.session.token}`
+    },
+    method: "GET",
+    url: `/api/rooms/${room.id}/leaderboard`
+  });
+  const initialLeaderboardBody = readJson<LeaderboardResponse>(initialLeaderboardResponse.body);
+  const saveStandingsBody = await saveGroupStandings(app, {
+    adminCookie,
+    groupId: "a",
+    teamIds: ["mexico", "south-africa", "korea-republic", "czechia"]
+  });
+  const groupStandingsResponse = await app.inject({
+    headers: {
+      cookie: adminCookie
+    },
+    method: "GET",
+    url: "/api/admin/group-standings"
+  });
+  const groupStandingsBody = readJson<AdminGroupStandingsResponse>(groupStandingsResponse.body);
+  const leaderboardResponse = await app.inject({
+    headers: {
+      Authorization: `Bearer ${entry.session.token}`
+    },
+    method: "GET",
+    url: `/api/rooms/${room.id}/leaderboard`
+  });
+  const leaderboardBody = readJson<LeaderboardResponse>(leaderboardResponse.body);
+
+  assert.equal(initialLeaderboardResponse.statusCode, 200);
+  assert.equal(initialLeaderboardBody.leaderboard[0]?.totalScore, 0);
+  assert.deepEqual(saveStandingsBody, {
+    ok: true,
+    standings: groupStandings
+  });
+  assert.equal(groupStandingsResponse.statusCode, 200);
+  assert.deepEqual(groupStandingsBody.standings, groupStandings);
+  assert.equal(leaderboardResponse.statusCode, 200);
+  assert.equal(leaderboardBody.leaderboard[0]?.displayName, "Standings Prophet");
+  assert.equal(leaderboardBody.leaderboard[0]?.totalScore, 4);
+  assert.equal(leaderboardBody.leaderboard[0]?.exactScoreHits, 0);
 });
 
 test("global leaderboard is public and opens current leader predictions only after the deadline", async (t) => {

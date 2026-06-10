@@ -86,6 +86,14 @@ npm ci
 npm run build
 ```
 
+Generate precompressed static assets for Nginx `gzip_static`:
+
+```bash
+find /opt/footballvanga/apps/web/dist -type f \
+  \( -name "*.html" -o -name "*.js" -o -name "*.css" -o -name "*.svg" -o -name "*.json" \) \
+  -exec gzip -kf9 {} \;
+```
+
 ## systemd
 
 Create `/etc/systemd/system/footballvanga-server.service`:
@@ -128,6 +136,15 @@ sudo journalctl -u footballvanga-server -f
 
 Example server block. Replace `footballvanga.example.com` with the real domain.
 
+Create `/etc/nginx/snippets/footballvanga-security-headers.conf`:
+
+```nginx
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header X-Frame-Options "DENY" always;
+add_header Content-Security-Policy "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'" always;
+```
+
 ```nginx
 server {
   listen 80;
@@ -135,6 +152,25 @@ server {
 
   root /opt/footballvanga/apps/web/dist;
   index index.html;
+
+  gzip on;
+  gzip_static on;
+  gzip_vary on;
+  gzip_comp_level 6;
+  gzip_min_length 1024;
+  gzip_types
+    text/plain
+    text/css
+    application/json
+    application/javascript
+    application/xml
+    image/svg+xml;
+
+  location ^~ /assets/ {
+    include /etc/nginx/snippets/footballvanga-security-headers.conf;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    try_files $uri =404;
+  }
 
   location /api/ {
     proxy_pass http://127.0.0.1:4100;
@@ -155,6 +191,8 @@ server {
   }
 
   location / {
+    include /etc/nginx/snippets/footballvanga-security-headers.conf;
+    add_header Cache-Control "no-cache";
     try_files $uri $uri/ /index.html;
   }
 }

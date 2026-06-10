@@ -187,7 +187,7 @@ Current room endpoints use the same API shape in both storage modes:
 - `GET /api/rooms` returns public room summaries only.
 - `GET /api/tournament` returns backend-owned frozen tournament groups, teams, matches, venues, kickoff times, and the shared prediction deadline.
 - `POST /api/rooms` creates a room and stores the room password as a scrypt hash.
-- `POST /api/rooms/:roomId/enter` verifies the room password without returning private room contents.
+- `POST /api/rooms/:roomId/enter` verifies the room password and returns current participant summaries so users can recognize an existing display name before entering a participant code.
 - `POST /api/rooms/:roomId/participants/enter` verifies the room password, creates or resumes a participant by display name plus participant code, stores the participant code as a scrypt hash, and returns a participant session token.
 - `GET /api/rooms/:roomId/participants` returns the participant list only when called with a valid participant session bearer token.
 - `GET /api/rooms/:roomId/leaderboard` returns the room leaderboard only when called with a valid participant session bearer token for that room.

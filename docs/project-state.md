@@ -36,6 +36,7 @@ Version 1 scope:
 - Password-protected rooms.
 - Guest participants with unique display names and participant codes inside each room.
 - Room lobby after room password and participant entry.
+- Participant entry shows the room participant list after the room password is accepted, so returning users can remember their display name.
 - Participants can view other predictions in the same room, but can edit only their own prediction.
 - Predictions remain editable until one backend-calculated tournament deadline.
 - Version 1 covers only the World Cup 2026 group stage.
@@ -56,6 +57,7 @@ Data policy:
 
 - Current product data must come from the backend, not frontend mock data.
 - `GET /api/tournament` owns tournament display data and the shared prediction deadline.
+- The SPA updates browser paths for rooms, room entry, room lobby, prediction workspace, and public global-leader prediction views. Participant sessions are stored in browser local storage so lobby/workspace routes can restore after refresh until the session expires.
 - Without `DATABASE_URL`, the API uses in-memory rooms, participants, sessions, predictions, match results, group-standing results, and scores, plus a backend static tournament fallback.
 - With `DATABASE_URL`, the API uses PostgreSQL after migrations.
 - In-memory data resets after API restart.

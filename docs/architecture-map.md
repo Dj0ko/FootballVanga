@@ -110,7 +110,7 @@ Access rules:
 
 App state:
 
-- `apps/web/src/App.tsx` - screen state, room/participant/session state, API loading orchestration.
+- `apps/web/src/App.tsx` - screen state, URL route restoration, room/participant/session state, API loading orchestration.
 
 API clients:
 
@@ -129,10 +129,20 @@ Screens:
 
 - `screens/welcome` - welcome screen.
 - `screens/rooms` - room list, create room form, global leaderboard, match history.
-- `screens/room-entry` - room password then participant display name/code.
+- `screens/room-entry` - room password, known participant display-name list, then participant display name/code.
 - `screens/room-lobby` - room overview and participant sidebar.
 - `screens/workspace` - prediction overview/detail, editable own view and read-only other/public views.
 - `screens/admin-results` - hidden operator screen for match scores, current/final group standings, manual sync, and scoring recalculation.
+
+Frontend routes:
+
+- `/` - welcome.
+- `/rooms` - room list.
+- `/rooms/:roomId/enter` - room password and participant entry.
+- `/rooms/:roomId/lobby` - room lobby, restored from a valid participant session in local storage.
+- `/rooms/:roomId/participants/:participantId` - prediction workspace, restored from a valid participant session in local storage.
+- `/leaderboard/:roomId/participants/:participantId` - public global-leader prediction view.
+- `/admin/results` - hidden admin result screen.
 
 Shared frontend components:
 
@@ -143,7 +153,7 @@ Shared frontend components:
 
 API tests live in `apps/api/test`.
 
-- `rooms.routes.test.ts` - room storage and room password behavior.
+- `rooms.routes.test.ts` - room storage, room password behavior, and participant list returned after room-password entry.
 - `participants.routes.test.ts` - participant identity/session behavior.
 - `predictions.routes.test.ts` - prediction read/write/deadline validation.
 - `matchResults.routes.test.ts` - admin match result behavior, group-standing endpoint validation, and manual result sync route behavior.

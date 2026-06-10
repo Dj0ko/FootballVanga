@@ -8,6 +8,7 @@ import {
   createRoom as createRoomRequest,
   enterParticipant as enterParticipantRequest,
   enterRoom,
+  fetchParticipants,
   fetchMatchHistory,
   fetchRoomLeaderboard,
   fetchRooms
@@ -30,9 +31,179 @@ import { WorkspaceScreen } from "./screens/workspace/WorkspaceScreen";
 
 type AppScreen = "welcome" | "rooms" | "roomEntry" | "roomLobby" | "workspace" | "globalPrediction";
 
+type AppRoute =
+  | {
+      type: "adminResults" | "rooms" | "welcome";
+    }
+  | {
+      roomId: string;
+      type: "roomEntry" | "roomLobby";
+    }
+  | {
+      participantId: string;
+      roomId: string;
+      type: "globalPrediction" | "workspace";
+    };
+
+type StoredParticipantSession = {
+  participant: RoomParticipant;
+  roomId: string;
+  session: ParticipantSession;
+};
+
+const PARTICIPANT_SESSION_STORAGE_PREFIX = "footballvanga:participant-session:";
+
+const decodeRouteSegment = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const encodeRouteSegment = (value: string) => encodeURIComponent(value);
+
+const normalizePath = (pathname: string) =>
+  pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+
+const parseAppRoute = (pathname: string): AppRoute => {
+  const normalizedPath = normalizePath(pathname);
+
+  if (normalizedPath === "/admin/results") {
+    return {
+      type: "adminResults"
+    };
+  }
+
+  if (normalizedPath === "/rooms") {
+    return {
+      type: "rooms"
+    };
+  }
+
+  const roomEntryMatch = normalizedPath.match(/^\/rooms\/([^/]+)\/enter$/);
+
+  if (roomEntryMatch?.[1]) {
+    return {
+      roomId: decodeRouteSegment(roomEntryMatch[1]),
+      type: "roomEntry"
+    };
+  }
+
+  const roomLobbyMatch = normalizedPath.match(/^\/rooms\/([^/]+)\/lobby$/);
+
+  if (roomLobbyMatch?.[1]) {
+    return {
+      roomId: decodeRouteSegment(roomLobbyMatch[1]),
+      type: "roomLobby"
+    };
+  }
+
+  const workspaceMatch = normalizedPath.match(/^\/rooms\/([^/]+)\/participants\/([^/]+)$/);
+
+  if (workspaceMatch?.[1] && workspaceMatch[2]) {
+    return {
+      participantId: decodeRouteSegment(workspaceMatch[2]),
+      roomId: decodeRouteSegment(workspaceMatch[1]),
+      type: "workspace"
+    };
+  }
+
+  const globalPredictionMatch = normalizedPath.match(/^\/leaderboard\/([^/]+)\/participants\/([^/]+)$/);
+
+  if (globalPredictionMatch?.[1] && globalPredictionMatch[2]) {
+    return {
+      participantId: decodeRouteSegment(globalPredictionMatch[2]),
+      roomId: decodeRouteSegment(globalPredictionMatch[1]),
+      type: "globalPrediction"
+    };
+  }
+
+  return {
+    type: "welcome"
+  };
+};
+
+const isRoomRoute = (
+  route: AppRoute
+): route is Extract<AppRoute, { roomId: string }> =>
+  route.type === "roomEntry" || route.type === "roomLobby" || route.type === "workspace";
+
+const getInitialScreen = (): AppScreen => {
+  const route = parseAppRoute(window.location.pathname);
+
+  if (route.type === "welcome") {
+    return "welcome";
+  }
+
+  if (route.type === "globalPrediction") {
+    return "globalPrediction";
+  }
+
+  return "rooms";
+};
+
+const shouldRestoreInitialRoute = () => {
+  const route = parseAppRoute(window.location.pathname);
+
+  return !["adminResults", "rooms", "welcome"].includes(route.type);
+};
+
+const setBrowserPath = (path: string, options: { replace?: boolean } = {}) => {
+  if (window.location.pathname === path) {
+    return;
+  }
+
+  const method = options.replace ? "replaceState" : "pushState";
+
+  window.history[method]({}, "", path);
+};
+
+const getRoomEntryPath = (roomId: string) => `/rooms/${encodeRouteSegment(roomId)}/enter`;
+const getRoomLobbyPath = (roomId: string) => `/rooms/${encodeRouteSegment(roomId)}/lobby`;
+const getWorkspacePath = (roomId: string, participantId: string) =>
+  `/rooms/${encodeRouteSegment(roomId)}/participants/${encodeRouteSegment(participantId)}`;
+const getGlobalPredictionPath = (roomId: string, participantId: string) =>
+  `/leaderboard/${encodeRouteSegment(roomId)}/participants/${encodeRouteSegment(participantId)}`;
+
+const getParticipantSessionStorageKey = (roomId: string) => `${PARTICIPANT_SESSION_STORAGE_PREFIX}${roomId}`;
+
+const persistParticipantSession = (input: StoredParticipantSession) => {
+  window.localStorage.setItem(getParticipantSessionStorageKey(input.roomId), JSON.stringify(input));
+};
+
+const getStoredParticipantSession = (roomId: string): StoredParticipantSession | null => {
+  const rawSession = window.localStorage.getItem(getParticipantSessionStorageKey(roomId));
+
+  if (!rawSession) {
+    return null;
+  }
+
+  try {
+    const parsedSession = JSON.parse(rawSession) as StoredParticipantSession;
+
+    if (
+      parsedSession.roomId !== roomId ||
+      !parsedSession.participant?.id ||
+      !parsedSession.session?.participantId ||
+      !parsedSession.session?.token ||
+      !parsedSession.session?.expiresAtIso ||
+      Date.now() >= Date.parse(parsedSession.session.expiresAtIso)
+    ) {
+      window.localStorage.removeItem(getParticipantSessionStorageKey(roomId));
+      return null;
+    }
+
+    return parsedSession;
+  } catch {
+    window.localStorage.removeItem(getParticipantSessionStorageKey(roomId));
+    return null;
+  }
+};
+
 export default function App() {
   const isAdminResultsRoute = window.location.pathname === "/admin/results";
-  const [screen, setScreen] = useState<AppScreen>("welcome");
+  const [screen, setScreen] = useState<AppScreen>(() => getInitialScreen());
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
   const [activeRoom, setActiveRoom] = useState<RoomSummary | null>(null);
   const [currentParticipant, setCurrentParticipant] = useState<RoomParticipant | null>(null);
@@ -51,6 +222,7 @@ export default function App() {
   const [tournament, setTournament] = useState<TournamentView | null>(null);
   const [tournamentError, setTournamentError] = useState("");
   const [isTournamentLoading, setIsTournamentLoading] = useState(true);
+  const [isRouteRestoring, setIsRouteRestoring] = useState(() => shouldRestoreInitialRoute());
   const [isScoringRulesOpen, setIsScoringRulesOpen] = useState(false);
 
   const openScoringRules = () => setIsScoringRulesOpen(true);
@@ -153,6 +325,185 @@ export default function App() {
           isCurrent: currentParticipant !== null && participant.id === currentParticipant.id
         }));
 
+  const restoreRoute = useCallback(async (options: { replace?: boolean } = {}) => {
+    const route = parseAppRoute(window.location.pathname);
+
+    if (route.type === "adminResults") {
+      return;
+    }
+
+    if (route.type === "welcome") {
+      setActiveRoom(null);
+      setCurrentParticipant(null);
+      setCurrentParticipantSession(null);
+      setViewedParticipant(null);
+      setViewedGlobalLeader(null);
+      setScreen("welcome");
+      return;
+    }
+
+    if (route.type === "rooms") {
+      setActiveRoom(null);
+      setCurrentParticipant(null);
+      setCurrentParticipantSession(null);
+      setViewedParticipant(null);
+      setViewedGlobalLeader(null);
+      setScreen("rooms");
+      return;
+    }
+
+    setIsRouteRestoring(true);
+
+    try {
+      if (route.type === "globalPrediction") {
+        const nextGlobalLeaderboard = await fetchGlobalLeaderboard();
+        const leader = nextGlobalLeaderboard.find(
+          (currentLeader) =>
+            currentLeader.roomId === route.roomId && currentLeader.participantId === route.participantId
+        );
+
+        if (!leader) {
+          throw new Error("Leaderboard participant was not found.");
+        }
+
+        setGlobalLeaderboard(nextGlobalLeaderboard);
+        setViewedGlobalLeader(leader);
+        setViewedParticipant(null);
+        setCurrentParticipant(null);
+        setCurrentParticipantSession(null);
+        setActiveRoom(null);
+        setScreen("globalPrediction");
+        return;
+      }
+
+      if (!isRoomRoute(route)) {
+        return;
+      }
+
+      const nextRooms = await fetchRooms();
+      const room = nextRooms.find((currentRoom) => currentRoom.id === route.roomId);
+
+      setRooms(nextRooms);
+
+      if (!room) {
+        throw new Error("Room was not found.");
+      }
+
+      setActiveRoom(room);
+      setViewedGlobalLeader(null);
+
+      if (route.type === "roomEntry") {
+        setCurrentParticipant(null);
+        setCurrentParticipantSession(null);
+        setViewedParticipant(null);
+        setScreen("roomEntry");
+        return;
+      }
+
+      const storedSession = getStoredParticipantSession(room.id);
+
+      if (!storedSession) {
+        setCurrentParticipant(null);
+        setCurrentParticipantSession(null);
+        setViewedParticipant(null);
+        setBrowserPath(getRoomEntryPath(room.id), {
+          replace: options.replace
+        });
+        setScreen("roomEntry");
+        return;
+      }
+
+      const participantResult = await fetchParticipants(room.id, storedSession.session.token).catch(() => {
+        window.localStorage.removeItem(getParticipantSessionStorageKey(room.id));
+        setCurrentParticipant(null);
+        setCurrentParticipantSession(null);
+        setViewedParticipant(null);
+        setBrowserPath(getRoomEntryPath(room.id), {
+          replace: true
+        });
+        setScreen("roomEntry");
+
+        return null;
+      });
+
+      if (!participantResult) {
+        return;
+      }
+      const participants = participantResult.participants;
+      const currentParticipant =
+        participants.find((participant) => participant.id === participantResult.participant.id) ??
+        participantResult.participant;
+
+      setParticipantsByRoomId((currentParticipantsByRoomId) => ({
+        ...currentParticipantsByRoomId,
+        [room.id]: participants
+      }));
+      setCurrentParticipant(currentParticipant);
+      setCurrentParticipantSession(storedSession.session);
+
+      if (route.type === "roomLobby") {
+        setViewedParticipant(null);
+        setScreen("roomLobby");
+        return;
+      }
+
+      if (route.type !== "workspace") {
+        return;
+      }
+
+      const viewedParticipant = participants.find((participant) => participant.id === route.participantId);
+
+      if (!viewedParticipant) {
+        setViewedParticipant(null);
+        setBrowserPath(getRoomLobbyPath(room.id), {
+          replace: true
+        });
+        setScreen("roomLobby");
+        return;
+      }
+
+      setViewedParticipant(viewedParticipant);
+      setScreen("workspace");
+    } catch (error) {
+      setRoomsError(error instanceof Error ? error.message : "Не удалось восстановить экран.");
+      setActiveRoom(null);
+      setCurrentParticipant(null);
+      setCurrentParticipantSession(null);
+      setViewedParticipant(null);
+      setViewedGlobalLeader(null);
+      setBrowserPath("/rooms", {
+        replace: true
+      });
+      setScreen("rooms");
+    } finally {
+      setIsRouteRestoring(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAdminResultsRoute || !tournament) {
+      return;
+    }
+
+    void restoreRoute({
+      replace: true
+    });
+  }, [isAdminResultsRoute, restoreRoute, tournament]);
+
+  useEffect(() => {
+    const restoreOnPopState = () => {
+      void restoreRoute({
+        replace: true
+      });
+    };
+
+    window.addEventListener("popstate", restoreOnPopState);
+
+    return () => {
+      window.removeEventListener("popstate", restoreOnPopState);
+    };
+  }, [restoreRoute]);
+
   const createRoom = async (input: CreateRoomInput) => {
     setIsCreatingRoom(true);
     setRoomsError("");
@@ -181,6 +532,7 @@ export default function App() {
     setCurrentParticipantSession(null);
     setViewedParticipant(null);
     setViewedGlobalLeader(null);
+    setBrowserPath(getRoomEntryPath(room.id));
     setScreen("roomEntry");
   };
 
@@ -190,7 +542,23 @@ export default function App() {
     }
 
     try {
-      await enterRoom(activeRoom.id, password);
+      const result = await enterRoom(activeRoom.id, password);
+
+      setParticipantsByRoomId((currentParticipantsByRoomId) => ({
+        ...currentParticipantsByRoomId,
+        [activeRoom.id]: result.participants
+      }));
+      setRooms((currentRooms) =>
+        currentRooms.map((room) =>
+          room.id === activeRoom.id ? { ...room, participantsCount: result.participants.length } : room
+        )
+      );
+      setActiveRoom((currentRoom) =>
+        currentRoom?.id === activeRoom.id
+          ? { ...currentRoom, participantsCount: result.participants.length }
+          : currentRoom
+      );
+
       return "success";
     } catch (error) {
       if (error instanceof ApiError && [400, 401, 404].includes(error.status)) {
@@ -233,8 +601,14 @@ export default function App() {
       );
       setCurrentParticipant(result.participant);
       setCurrentParticipantSession(result.session);
+      persistParticipantSession({
+        participant: result.participant,
+        roomId: activeRoom.id,
+        session: result.session
+      });
       setViewedParticipant(null);
       setViewedGlobalLeader(null);
+      setBrowserPath(getRoomLobbyPath(activeRoom.id));
       setScreen("roomLobby");
       return "success";
     } catch (error) {
@@ -247,12 +621,17 @@ export default function App() {
   };
 
   const openWorkspace = (participant: RoomParticipant) => {
+    if (activeRoom) {
+      setBrowserPath(getWorkspacePath(activeRoom.id, participant.id));
+    }
+
     setViewedParticipant(participant);
     setViewedGlobalLeader(null);
     setScreen("workspace");
   };
 
   const openGlobalLeaderPrediction = (leader: GlobalLeaderboardEntry) => {
+    setBrowserPath(getGlobalPredictionPath(leader.roomId, leader.participantId));
     setViewedGlobalLeader(leader);
     setViewedParticipant(null);
     setScreen("globalPrediction");
@@ -313,7 +692,23 @@ export default function App() {
   }
 
   if (screen === "welcome") {
-    return <WelcomeScreen deadlineIso={tournament.deadlineIso} onContinue={() => setScreen("rooms")} />;
+    return (
+      <WelcomeScreen
+        deadlineIso={tournament.deadlineIso}
+        onContinue={() => {
+          setBrowserPath("/rooms");
+          setScreen("rooms");
+        }}
+      />
+    );
+  }
+
+  if (isRouteRestoring) {
+    return (
+      <main className="app-status" role="status">
+        <h1>Восстанавливаем экран</h1>
+      </main>
+    );
   }
 
   if (screen === "rooms") {
@@ -346,10 +741,12 @@ export default function App() {
         room={activeRoom}
         onBackToRooms={() => {
           setCurrentParticipantSession(null);
+          setBrowserPath("/rooms");
           setScreen("rooms");
         }}
         onEnterParticipant={enterParticipant}
         onVerifyRoomPassword={verifyRoomPassword}
+        participants={getRoomParticipants(activeRoom.id)}
       />
     );
   }
@@ -368,6 +765,7 @@ export default function App() {
           setCurrentParticipantSession(null);
           setViewedParticipant(null);
           setViewedGlobalLeader(null);
+          setBrowserPath("/rooms");
           setScreen("rooms");
         }}
         onOpenMyPrediction={() => openWorkspace(currentParticipant)}
@@ -390,7 +788,10 @@ export default function App() {
         roomName={activeRoom.name}
         sessionToken={currentParticipantSession.token}
         tournament={tournament}
-        onBackToLobby={() => setScreen("roomLobby")}
+        onBackToLobby={() => {
+          setBrowserPath(getRoomLobbyPath(activeRoom.id));
+          setScreen("roomLobby");
+        }}
         onOpenScoringRules={openScoringRules}
       />
     );
@@ -407,7 +808,10 @@ export default function App() {
         roomId={viewedGlobalLeader.roomId}
         roomName={viewedGlobalLeader.roomName}
         tournament={tournament}
-        onBackToLobby={() => setScreen("rooms")}
+        onBackToLobby={() => {
+          setBrowserPath("/rooms");
+          setScreen("rooms");
+        }}
         onOpenScoringRules={openScoringRules}
       />
     );

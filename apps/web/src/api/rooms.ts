@@ -24,6 +24,7 @@ type CreateRoomResponse = {
 
 type EnterRoomResponse = {
   ok: boolean;
+  participants: ApiParticipantSummary[];
   roomId: string;
 };
 
@@ -127,13 +128,19 @@ export const createRoom = async (input: CreateRoomInput) => {
   return toRoomSummary(response.room);
 };
 
-export const enterRoom = async (roomId: string, password: string) =>
-  requestJson<EnterRoomResponse>(`/api/rooms/${encodeURIComponent(roomId)}/enter`, {
+export const enterRoom = async (roomId: string, password: string) => {
+  const response = await requestJson<EnterRoomResponse>(`/api/rooms/${encodeURIComponent(roomId)}/enter`, {
     body: JSON.stringify({
       password
     }),
     method: "POST"
   });
+
+  return {
+    participants: response.participants.map(toRoomParticipant),
+    roomId: response.roomId
+  };
+};
 
 export const enterParticipant = async (roomId: string, input: EnterParticipantInput) => {
   const response = await requestJson<EnterParticipantResponse>(

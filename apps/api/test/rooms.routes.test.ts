@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { RoomSummary } from "@footballvanga/shared";
+import type { ParticipantSummary, RoomSummary } from "@footballvanga/shared";
 
 import { buildServer } from "../src/index.ts";
 import { hashPassword, verifyPassword } from "../src/passwordHash.ts";
@@ -131,8 +131,44 @@ test("room endpoints use in-memory storage when DATABASE_URL is not configured",
   assert.equal(enterResponse.statusCode, 200);
   assert.deepEqual(readJson(enterResponse.body), {
     ok: true,
+    participants: [],
     roomId: createBody.room.id
   });
+
+  const participantResponse = await app.inject({
+    method: "POST",
+    payload: {
+      code: "4321",
+      displayName: "Nikita",
+      roomPassword: "1234"
+    },
+    url: `/api/rooms/${createBody.room.id}/participants/enter`
+  });
+
+  assert.equal(participantResponse.statusCode, 201);
+
+  const enterWithParticipantResponse = await app.inject({
+    method: "POST",
+    payload: {
+      password: "1234"
+    },
+    url: `/api/rooms/${createBody.room.id}/enter`
+  });
+  const enterWithParticipantBody = readJson<{
+    ok: boolean;
+    participants: ParticipantSummary[];
+    roomId: string;
+  }>(enterWithParticipantResponse.body);
+
+  assert.equal(enterWithParticipantResponse.statusCode, 200);
+  assert.equal(enterWithParticipantBody.ok, true);
+  assert.equal(enterWithParticipantBody.roomId, createBody.room.id);
+  assert.deepEqual(
+    enterWithParticipantBody.participants.map((participant) => participant.displayName),
+    ["Nikita"]
+  );
+  assert.equal(enterWithParticipantResponse.body.includes("codeHash"), false);
+  assert.equal(enterWithParticipantResponse.body.includes("tokenHash"), false);
 });
 
 test("GET /api/rooms returns public room summaries", async (t) => {
@@ -281,6 +317,7 @@ test("POST /api/rooms/:roomId/enter verifies room passwords", async (t) => {
   assert.equal(successResponse.statusCode, 200);
   assert.deepEqual(readJson(successResponse.body), {
     ok: true,
+    participants: [],
     roomId: "room-1"
   });
   assert.equal(wrongPasswordResponse.statusCode, 401);

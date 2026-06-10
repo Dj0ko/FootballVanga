@@ -1,8 +1,8 @@
-import { ArrowLeft, KeyRound, LogIn, UserPlus } from "lucide-react";
+import { ArrowLeft, KeyRound, LogIn, UserPlus, UsersRound } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineCountdown";
-import type { RoomSummary } from "../../data/rooms";
+import type { RoomParticipant, RoomSummary } from "../../data/rooms";
 import styles from "./RoomEntryScreen.module.css";
 
 export type ParticipantEntryInput = {
@@ -18,6 +18,7 @@ type RoomEntryScreenProps = {
   onBackToRooms: () => void;
   onEnterParticipant: (input: ParticipantEntryInput) => Promise<ParticipantEntryResult>;
   onVerifyRoomPassword: (password: string) => Promise<RoomPasswordResult>;
+  participants: RoomParticipant[];
   room: RoomSummary;
 };
 
@@ -27,6 +28,7 @@ export function RoomEntryScreen({
   onBackToRooms,
   onEnterParticipant,
   onVerifyRoomPassword,
+  participants,
   room
 }: RoomEntryScreenProps) {
   const [roomPassword, setRoomPassword] = useState("");
@@ -123,49 +125,70 @@ export function RoomEntryScreen({
         </div>
 
         {isRoomUnlocked ? (
-          <form className={styles.form} onSubmit={enterParticipant}>
-            <label className={styles.field}>
-              Имя участника
-              <input
-                autoFocus
-                disabled={isEnteringParticipant}
-                required
-                value={participantName}
-                onChange={(event) => {
-                  setParticipantName(event.target.value);
-                  setError("");
-                }}
-                placeholder="Например, Никита"
-              />
-            </label>
+          <>
+            <section className={styles.participantsPanel} aria-labelledby="room-participants-title">
+              <div className={styles.participantsHeader}>
+                <UsersRound size={18} aria-hidden="true" />
+                <h3 id="room-participants-title">Участники комнаты</h3>
+              </div>
 
-            <label className={styles.field}>
-              Код участника
-              <input
-                minLength={MIN_SECRET_LENGTH}
-                required
-                type="password"
-                disabled={isEnteringParticipant}
-                value={participantCode}
-                onChange={(event) => {
-                  setParticipantCode(event.target.value);
-                  setError("");
-                }}
-                placeholder="Минимум 4 символа"
-              />
-            </label>
+              {participants.length ? (
+                <ul className={styles.participantsList}>
+                  {participants.map((participant) => (
+                    <li className={styles.participantItem} key={participant.id}>
+                      <span>{participant.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className={styles.emptyParticipants}>Пока никого нет.</p>
+              )}
+            </section>
 
-            {error ? <p className={styles.error}>{error}</p> : null}
+            <form className={styles.form} onSubmit={enterParticipant}>
+              <label className={styles.field}>
+                Имя участника
+                <input
+                  autoFocus
+                  disabled={isEnteringParticipant}
+                  required
+                  value={participantName}
+                  onChange={(event) => {
+                    setParticipantName(event.target.value);
+                    setError("");
+                  }}
+                  placeholder="Например, Никита"
+                />
+              </label>
 
-            <button
-              type="submit"
-              className={styles.primaryButton}
-              disabled={!canEnterParticipant || isEnteringParticipant}
-            >
-              <UserPlus size={18} aria-hidden="true" />
-              {isEnteringParticipant ? "Входим..." : "Войти участником"}
-            </button>
-          </form>
+              <label className={styles.field}>
+                Код участника
+                <input
+                  minLength={MIN_SECRET_LENGTH}
+                  required
+                  type="password"
+                  disabled={isEnteringParticipant}
+                  value={participantCode}
+                  onChange={(event) => {
+                    setParticipantCode(event.target.value);
+                    setError("");
+                  }}
+                  placeholder="Минимум 4 символа"
+                />
+              </label>
+
+              {error ? <p className={styles.error}>{error}</p> : null}
+
+              <button
+                type="submit"
+                className={styles.primaryButton}
+                disabled={!canEnterParticipant || isEnteringParticipant}
+              >
+                <UserPlus size={18} aria-hidden="true" />
+                {isEnteringParticipant ? "Входим..." : "Войти участником"}
+              </button>
+            </form>
+          </>
         ) : (
           <form className={styles.form} onSubmit={verifyRoom}>
             <label className={styles.field}>

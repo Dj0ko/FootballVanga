@@ -665,6 +665,7 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
 
     return {
       ok: true,
+      participants: resolvedParticipantRepository ? await resolvedParticipantRepository.listParticipants(room.id) : [],
       roomId: room.id
     };
   });

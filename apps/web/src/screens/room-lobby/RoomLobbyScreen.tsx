@@ -1,6 +1,7 @@
 import { ArrowLeft, Lock } from "lucide-react";
 
 import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineCountdown";
+import { ScoringRulesButton } from "../../components/scoring-rules/ScoringRulesButton";
 import type { RoomParticipant, RoomSummary } from "../../data/rooms";
 import { ParticipantsSidebar } from "./components/participants-sidebar/ParticipantsSidebar";
 import { RoomOverview } from "./components/room-overview/RoomOverview";
@@ -14,6 +15,7 @@ type RoomLobbyScreenProps = {
   onBackToRooms: () => void;
   onOpenMyPrediction: () => void;
   onOpenParticipantPrediction: (participant: RoomParticipant) => void;
+  onOpenScoringRules: () => void;
 };
 
 export function RoomLobbyScreen({
@@ -23,7 +25,8 @@ export function RoomLobbyScreen({
   room,
   onBackToRooms,
   onOpenMyPrediction,
-  onOpenParticipantPrediction
+  onOpenParticipantPrediction,
+  onOpenScoringRules
 }: RoomLobbyScreenProps) {
   return (
     <main className={styles.shell}>
@@ -42,6 +45,7 @@ export function RoomLobbyScreen({
           закрытая
         </div>
 
+        <ScoringRulesButton className={styles.rulesButton} onClick={onOpenScoringRules} />
         <DeadlineCountdown className={styles.deadlineCountdown} startsAtIso={deadlineIso} />
       </header>
 

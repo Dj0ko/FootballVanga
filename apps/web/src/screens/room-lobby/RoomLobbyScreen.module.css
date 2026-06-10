@@ -6,7 +6,7 @@
 
 .topbar {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 18px;
   margin-bottom: 18px;
@@ -55,6 +55,10 @@
   justify-self: end;
 }
 
+.rulesButton {
+  justify-self: end;
+}
+
 .contentGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -78,7 +82,8 @@
   }
 
   .backButton,
-  .roomStatus {
+  .roomStatus,
+  .rulesButton {
     width: 100%;
   }
 

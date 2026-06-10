@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import type { GlobalLeaderboardEntry, MatchResult, ParticipantSession, PredictionStatus } from "@footballvanga/shared";
 
@@ -13,6 +13,7 @@ import {
   fetchRooms
 } from "./api/rooms";
 import { fetchTournament } from "./api/tournament";
+import { ScoringRulesDialog } from "./components/scoring-rules/ScoringRulesDialog";
 import { type CreateRoomInput, type RoomParticipant, type RoomSummary } from "./data/rooms";
 import type { TournamentView } from "./data/tournament";
 import { AdminResultsScreen } from "./screens/admin-results/AdminResultsScreen";
@@ -50,6 +51,17 @@ export default function App() {
   const [tournament, setTournament] = useState<TournamentView | null>(null);
   const [tournamentError, setTournamentError] = useState("");
   const [isTournamentLoading, setIsTournamentLoading] = useState(true);
+  const [isScoringRulesOpen, setIsScoringRulesOpen] = useState(false);
+
+  const openScoringRules = () => setIsScoringRulesOpen(true);
+  const closeScoringRules = () => setIsScoringRulesOpen(false);
+
+  const withScoringRules = (screenNode: ReactNode) => (
+    <>
+      {screenNode}
+      <ScoringRulesDialog isOpen={isScoringRulesOpen} onClose={closeScoringRules} />
+    </>
+  );
 
   const loadTournament = useCallback(async () => {
     setIsTournamentLoading(true);
@@ -305,7 +317,7 @@ export default function App() {
   }
 
   if (screen === "rooms") {
-    return (
+    return withScoringRules(
       <RoomsScreen
         deadlineIso={tournament.deadlineIso}
         error={roomsError}
@@ -321,6 +333,7 @@ export default function App() {
         onCreateRoom={createRoom}
         onOpenGlobalLeader={openGlobalLeaderPrediction}
         onOpenRoom={openRoomEntry}
+        onOpenScoringRules={openScoringRules}
         onRetryGlobalLeaderboard={loadGlobalLeaderboard}
         onRetry={loadRooms}
       />
@@ -344,7 +357,7 @@ export default function App() {
   if (screen === "roomLobby" && activeRoom && currentParticipant && currentParticipantSession) {
     const activeRoomParticipants = getActiveRoomParticipants();
 
-    return (
+    return withScoringRules(
       <RoomLobbyScreen
         deadlineIso={tournament.deadlineIso}
         matchCount={tournament.matches.length}
@@ -359,6 +372,7 @@ export default function App() {
         }}
         onOpenMyPrediction={() => openWorkspace(currentParticipant)}
         onOpenParticipantPrediction={openWorkspace}
+        onOpenScoringRules={openScoringRules}
       />
     );
   }
@@ -366,7 +380,7 @@ export default function App() {
   if (screen === "workspace" && activeRoom && currentParticipant && currentParticipantSession && viewedParticipant) {
     const isReadOnly = viewedParticipant.id !== currentParticipant.id;
 
-    return (
+    return withScoringRules(
       <WorkspaceScreen
         isReadOnly={isReadOnly}
         onParticipantPredictionStatusChange={updateParticipantPredictionStatus}
@@ -377,12 +391,13 @@ export default function App() {
         sessionToken={currentParticipantSession.token}
         tournament={tournament}
         onBackToLobby={() => setScreen("roomLobby")}
+        onOpenScoringRules={openScoringRules}
       />
     );
   }
 
   if (screen === "globalPrediction" && viewedGlobalLeader) {
-    return (
+    return withScoringRules(
       <WorkspaceScreen
         backButtonLabel="Комнаты"
         isPublicReadOnly
@@ -393,11 +408,12 @@ export default function App() {
         roomName={viewedGlobalLeader.roomName}
         tournament={tournament}
         onBackToLobby={() => setScreen("rooms")}
+        onOpenScoringRules={openScoringRules}
       />
     );
   }
 
-  return (
+  return withScoringRules(
     <RoomsScreen
       deadlineIso={tournament.deadlineIso}
       error={roomsError}
@@ -413,6 +429,7 @@ export default function App() {
       onCreateRoom={createRoom}
       onOpenGlobalLeader={openGlobalLeaderPrediction}
       onOpenRoom={openRoomEntry}
+      onOpenScoringRules={openScoringRules}
       onRetryGlobalLeaderboard={loadGlobalLeaderboard}
       onRetry={loadRooms}
     />

@@ -255,6 +255,8 @@ The first implementation should choose the simplest effective control.
 
 The app should feel more like a game than a plain admin form.
 
+Rules and scoring explanation should be available from the product flow in a separate dialog or window after the welcome screen. The welcome screen should stay focused on entry into the game, while participants can open scoring rules from room and prediction contexts.
+
 Expected UI areas:
 
 - Room entry screen.

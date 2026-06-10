@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import { fetchGlobalLeaderboardPrediction, fetchParticipantPrediction, saveMyPrediction } from "../../api/predictions";
 import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineCountdown";
+import { ScoringRulesButton } from "../../components/scoring-rules/ScoringRulesButton";
 import {
   createEmptyPredictionSnapshot,
   createPredictionSnapshotFromParticipantPrediction,
@@ -22,6 +23,7 @@ type WorkspaceScreenProps = {
   isPublicReadOnly?: boolean;
   onParticipantPredictionStatusChange?: (participantId: string, predictionStatus: "saved" | "draft" | "empty") => void;
   onBackToLobby: () => void;
+  onOpenScoringRules: () => void;
   participantId: string;
   participantName: string;
   roomId: string;
@@ -48,6 +50,7 @@ export function WorkspaceScreen({
   isPublicReadOnly = false,
   onParticipantPredictionStatusChange,
   onBackToLobby,
+  onOpenScoringRules,
   participantId,
   participantName,
   roomId,
@@ -246,6 +249,7 @@ export function WorkspaceScreen({
           </h1>
         </div>
 
+        <ScoringRulesButton className={styles.rulesButton} onClick={onOpenScoringRules} />
         <DeadlineCountdown className={styles.deadlineCountdown} startsAtIso={tournament.deadlineIso} />
       </header>
 

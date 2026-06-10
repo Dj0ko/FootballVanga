@@ -19,7 +19,7 @@ The agreed Version 1 product scope:
 - The rooms screen after welcome includes the tournament match history/results view for completed games.
 - Match results are visible on the rooms screen, but result editing is operator-only.
 - Operator-only manual result entry should use the hidden `/admin/results` screen.
-- Rules explanation should live in a separate UI window later, not on the welcome screen.
+- Rules explanation lives in a separate scoring rules dialog after the welcome screen, not on the welcome screen itself.
 
 ## Current Implementation
 
@@ -65,6 +65,7 @@ The frontend currently has:
   - `Мой прогноз` action that opens the group prediction screen.
 - Participant rows in the room lobby open that participant's backend-backed prediction screen.
 - A backend-backed group prediction screen with all 12 World Cup 2026 groups in a desktop 4-column grid.
+- A scoring rules dialog reachable from the rooms, room lobby, and prediction workspace topbars.
 - Overview group cards open a focused group detail screen.
 - Drag-and-drop team ordering inside the active group detail screen using `@dnd-kit`.
 - Match score inputs for the six matches of the active group.
@@ -176,7 +177,25 @@ Current welcome screen decisions:
   - left and right penalty boxes.
 - Horizontal field lines were intentionally removed because they do not match football field markings.
 - The left-side dark gradient is intentional and should remain because it improves text contrast.
-- Rules/scoring explanations should not appear on the welcome screen; they will be added later in a separate rules window/modal.
+- Rules/scoring explanations should not appear on the welcome screen; they live in a separate rules dialog after welcome.
+
+### Scoring Rules Dialog
+
+Current scoring rules dialog decisions:
+
+- The rules entry point is a compact `Правила` button in product topbars, not on the welcome screen.
+- The button is available on:
+  - rooms screen;
+  - room lobby screen;
+  - prediction workspace screen, including public read-only prediction views.
+- The dialog explains:
+  - 1 point for each exact final group position;
+  - 1 point for the correct match outcome;
+  - 2 additional points for the exact score;
+  - exact score therefore gives 3 total match points;
+  - leaderboard ties are broken by exact score count.
+- The dialog also reminds participants that predictions are editable until the shared tournament deadline and read-only after it.
+- Scoring numbers in the dialog are imported from shared scoring constants.
 
 ### Rooms Screen
 
@@ -431,7 +450,6 @@ After these seven steps, continue with deployment hardening and scheduled automa
 Open product/UI work that can wait until the backend path is underway:
 
 - Verify World Cup 2026 group-stage fixture data against FIFA before production seed/migrations.
-- Add a rules explanation modal/window.
 
 ## Mock/Data Retirement Roadmap
 

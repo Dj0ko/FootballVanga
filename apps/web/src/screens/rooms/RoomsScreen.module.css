@@ -6,7 +6,7 @@
 
 .topbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 16px;
   margin-bottom: 18px;
@@ -27,6 +27,10 @@
 }
 
 .deadlineCountdown {
+  justify-self: end;
+}
+
+.rulesButton {
   justify-self: end;
 }
 
@@ -212,7 +216,8 @@
     font-size: 2.5rem;
   }
 
-  .createButton {
+  .createButton,
+  .rulesButton {
     width: 100%;
   }
 

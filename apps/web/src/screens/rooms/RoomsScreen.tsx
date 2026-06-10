@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { GlobalLeaderboardEntry, MatchResult } from "@footballvanga/shared";
 
 import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineCountdown";
+import { ScoringRulesButton } from "../../components/scoring-rules/ScoringRulesButton";
 import { type CreateRoomInput, type RoomSummary } from "../../data/rooms";
 import type { Match } from "../../data/tournament";
 import { CreateRoomForm } from "./components/create-room-form/CreateRoomForm";
@@ -26,6 +27,7 @@ type RoomsScreenProps = {
   onCreateRoom: (room: CreateRoomInput) => Promise<boolean>;
   onOpenGlobalLeader: (leader: GlobalLeaderboardEntry) => void;
   onOpenRoom: (room: RoomSummary) => void;
+  onOpenScoringRules: () => void;
   onRetryGlobalLeaderboard: () => void;
   onRetry: () => void;
 };
@@ -64,6 +66,7 @@ export function RoomsScreen({
   onCreateRoom,
   onOpenGlobalLeader,
   onOpenRoom,
+  onOpenScoringRules,
   onRetryGlobalLeaderboard,
   onRetry
 }: RoomsScreenProps) {
@@ -89,6 +92,7 @@ export function RoomsScreen({
           <h1 className={styles.title}>Комнаты</h1>
         </div>
         <DeadlineCountdown className={styles.deadlineCountdown} startsAtIso={deadlineIso} />
+        <ScoringRulesButton className={styles.rulesButton} onClick={onOpenScoringRules} />
         <button
           type="button"
           className={styles.createButton}

@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 
-import type { Group } from "../../../../data/mockFootball";
+import type { Group } from "../../../../data/tournament";
 import { teamFlagUrls } from "../../../../data/teamFlags";
 import styles from "./GroupPredictionCard.module.css";
 

@@ -1,6 +1,6 @@
 import { ClipboardList, Edit3, Trophy, Users } from "lucide-react";
 
-import type { RoomParticipant } from "../../../../data/mockFootball";
+import type { RoomParticipant } from "../../../../data/rooms";
 import styles from "./RoomOverview.module.css";
 
 type RoomOverviewProps = {

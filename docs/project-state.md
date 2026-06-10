@@ -1,6 +1,6 @@
 # FootballVanga Project State
 
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
 ## Current Product Shape
 
@@ -13,8 +13,7 @@ The agreed Version 1 product scope:
 - A room lobby that shows participant names after room password entry.
 - Participants can view other predictions, but can edit only their own prediction.
 - Predictions remain editable until a single deadline before the tournament starts.
-- The current UI derives that deadline from the first group-stage match kickoff.
-- The backend should calculate the same Version 1 deadline from the earliest group-stage match kickoff.
+- The shared deadline is returned by the backend tournament data endpoint and calculated from the earliest group-stage match kickoff.
 - Version 1 covers only the group stage.
 - Rooms can be visible in a common room list, but room contents remain hidden until the room password is accepted.
 - The rooms screen after welcome includes the tournament match history/results view for completed games.
@@ -39,7 +38,7 @@ The frontend currently has:
   - `Закрытая игра прогнозов для футбольных компаний.`
   - `Входи в комнату, оставляй прогноз и следи, как меняется таблица после каждого матча.`
 - A shared deadline countdown is shown in the top/header area of the welcome, rooms, room lobby, and prediction workspace screens.
-- The current mocked prediction deadline is derived from the earliest World Cup 2026 group-stage match kickoff in `matches`.
+- The current prediction deadline is loaded from the backend-backed tournament data endpoint.
 - A `Продолжить` button that opens the rooms screen.
 - A rooms screen shown after welcome.
 - A backend-backed tournament match history/results view on the rooms screen.
@@ -50,7 +49,7 @@ The frontend currently has:
 - Room creation currently requires:
   - non-empty room name;
   - room password with at least 4 characters.
-- A mocked all-rooms top-5 leaderboard sidebar on the rooms screen.
+- An API-backed all-rooms top-5 leaderboard sidebar on the rooms screen.
 - Room cards from the API-backed room list open the room entry screen.
 - A room entry screen with:
   - backend room password check before entering room contents;
@@ -59,7 +58,7 @@ The frontend currently has:
   - backend existing participant name protection by participant code;
   - backend new participant creation when the display name is not taken;
   - backend participant session creation after successful participant entry.
-- A mocked room lobby screen with:
+- A room lobby screen with:
   - room overview in the central area;
   - room participant sidebar on the right;
   - room stats for participant count, submitted predictions, and match count;
@@ -78,7 +77,7 @@ The frontend currently has:
 - The admin screen checks backend admin session status, logs in through `POST /api/admin/login`, and writes scores through `PUT /api/admin/matches/:matchId/result`.
 - The room lobby participant sidebar now refreshes from the backend-backed room leaderboard endpoint after participant entry and when returning to the lobby.
 
-The frontend still uses local mock data in `apps/web/src/data/mockFootball.ts` for tournament display and the all-rooms top-5 leaderboard sidebar. Participant predictions, room leaderboards, and match results are now loaded from and saved to the backend.
+The frontend no longer uses local mock data for current product data. Tournament display data, participant predictions, room leaderboards, global top-5 leaderboard, admin result entry, and match results are loaded from the backend.
 
 The rooms list, room creation, room password entry, participant entry, participant lists after entry, and hidden `/admin/results` screen call the backend scaffold.
 
@@ -86,12 +85,15 @@ The backend currently has:
 
 - `GET /health`
 - `GET /api/meta`
+- `GET /api/tournament`
 - `GET /api/rooms`
 - `POST /api/rooms`
 - `POST /api/rooms/:roomId/enter`
 - `POST /api/rooms/:roomId/participants/enter`
 - `GET /api/rooms/:roomId/participants`
 - `GET /api/rooms/:roomId/leaderboard`
+- `GET /api/leaderboard/global`
+- `GET /api/leaderboard/global/:roomId/predictions/:participantId`
 - `GET /api/rooms/:roomId/predictions/:participantId`
 - `PUT /api/rooms/:roomId/predictions/me`
 - `GET /api/match-history`
@@ -101,9 +103,9 @@ The backend currently has:
 - `PUT /api/admin/matches/:matchId/result`
 - `POST /api/admin/scoring/recalculate`
 
-Backend match result storage uses PostgreSQL when `DATABASE_URL` is configured and migrations have been applied. Without `DATABASE_URL`, match result storage uses the local in-memory fallback.
+Backend match result storage uses PostgreSQL when `DATABASE_URL` is configured and migrations have been applied. Without `DATABASE_URL`, match result storage uses the local in-memory fallback and starts empty until an operator enters results or a future importer writes them.
 
-Room, participant, prediction, and match result storage use PostgreSQL when `DATABASE_URL` is configured and migrations have been applied. Without `DATABASE_URL`, the API uses local in-memory room, participant, prediction, and match result storage so room creation, room password entry, participant entry, participant session checks, prediction persistence, and result entry can be checked without a local database; in-memory rooms, participants, sessions, predictions, and match results reset after the API restarts.
+Room, participant, prediction, match result, scoring, and tournament data storage use PostgreSQL when `DATABASE_URL` is configured and migrations have been applied. Without `DATABASE_URL`, the API uses local in-memory room, participant, prediction, match result, and scoring storage plus a backend static tournament fallback so room creation, room password entry, participant entry, participant session checks, prediction persistence, result entry, scoring, and tournament display can be checked without a local database; in-memory rooms, participants, sessions, predictions, match results, and scores reset after the API restarts.
 
 Scoring recalculation now writes PostgreSQL `score_snapshots` when `DATABASE_URL` is configured and updates in-memory participant scores in the local no-database path. Match-result writes and prediction saves trigger recalculation automatically when scoring storage is configured, and operators can also trigger a manual recalculation through `POST /api/admin/scoring/recalculate`.
 
@@ -125,10 +127,9 @@ The repository now has an automated API test suite:
 
 - `npm test` runs API tests through the root workspace script.
 - API tests type-check test files with `apps/api/tsconfig.test.json`.
-- The current tests cover shared password hashing, room endpoint behavior, participant entry/session behavior, prediction read/write/deadline behavior, match result read/write/admin behavior through Fastify `inject`, and World Cup 2026 seed migration invariants.
-- The current tests cover shared password hashing, room endpoint behavior, participant entry/session behavior, prediction read/write/deadline behavior, match result read/write/admin behavior, scoring recalculation, room leaderboard behavior through Fastify `inject`, and World Cup 2026 seed migration invariants.
+- The current tests cover shared password hashing, room endpoint behavior, participant entry/session behavior, prediction read/write/deadline behavior, match result read/write/admin behavior, scoring recalculation, room leaderboard behavior, global leaderboard/public leader prediction behavior, tournament data endpoint behavior through Fastify `inject`, and World Cup 2026 seed migration invariants.
 
-World Cup 2026 group data is now used by the prediction screen and by the backend seed migration. Group-stage fixtures are documented in `docs/world-cup-2026-data.md`.
+World Cup 2026 group data is now backend-owned: PostgreSQL reads it from the seed migration, the no-database path uses a backend static fallback, and the frontend loads it through `GET /api/tournament`. Group-stage fixtures are documented in `docs/world-cup-2026-data.md`.
 
 Current frontend organization:
 
@@ -140,11 +141,15 @@ Current frontend organization:
 - `apps/web/src/screens/rooms/components/create-room-form` contains the room creation form and its CSS module.
 - `apps/web/src/screens/rooms/components/match-results-history` contains the tournament match history/results view and its CSS module.
 - `apps/web/src/screens/rooms/components/rooms-leaderboard` contains the all-rooms leaderboard sidebar and its CSS module.
+- `apps/web/src/api/leaderboard.ts` loads the public global top-5 leaderboard.
+- `apps/web/src/data/rooms.ts` contains frontend room and participant UI types.
 - `apps/web/src/screens/room-entry` contains backend room password entry and backend participant entry flow.
 - `apps/web/src/screens/room-lobby` contains the room lobby screen and its CSS module.
 - `apps/web/src/screens/room-lobby/components/room-overview` contains the central room overview and its CSS module.
 - `apps/web/src/screens/room-lobby/components/participants-sidebar` contains the room participants sidebar and its CSS module.
 - `apps/web/src/api/predictions.ts` contains prediction read/write API calls.
+- `apps/web/src/api/tournament.ts` loads backend tournament data and adapts it for UI use.
+- `apps/web/src/data/tournament.ts` contains tournament UI types and prediction snapshot helpers built from backend tournament data.
 - `apps/web/src/screens/workspace` contains the backend-backed prediction workspace and its CSS module.
 - `apps/web/src/screens/workspace/components/group-prediction-board` contains the 12-group prediction board and its CSS module.
 - `apps/web/src/screens/workspace/components/group-prediction-card` contains the read-only overview group card and its CSS module.
@@ -201,8 +206,10 @@ Current rooms screen decisions:
 - Existing rooms are shown as compact room cards with participant count, locked-room status, and enter action.
 - Room card enter actions should use the green primary style, not a red/destructive style.
 - The rooms screen shows completed group-stage match results/history below the room list.
-- The right sidebar should be titled `ТОП-5 лидеров рейтинга` and show a mocked top-5 participant leaderboard across all rooms.
+- The right sidebar should be titled `ТОП-5 лидеров рейтинга` and show an API-backed top-5 participant leaderboard across all rooms.
 - The all-rooms leaderboard ranks by total points, then exact score count as a tiebreaker.
+- The all-rooms leaderboard only includes participants with `totalScore > 0`; before the first meaningful scores it shows an empty state.
+- Clicking a global leaderboard participant opens that participant's prediction in read-only mode after the shared prediction deadline.
 
 ### Admin Result Entry
 
@@ -215,7 +222,7 @@ Current admin result-entry decisions:
 - Admin sessions use an HTTP-only cookie signed with `ADMIN_SESSION_SECRET`.
 - Normal room passwords and participant codes must not grant access to result writes.
 - Backend result writes persist to PostgreSQL when `DATABASE_URL` is configured and migrations have been applied.
-- The local no-database path keeps an in-memory result fallback for manual checks.
+- The local no-database path keeps an in-memory result fallback for manual checks, starting with no saved results.
 
 ### Room Lobby Screen
 
@@ -286,19 +293,19 @@ Current prediction screen decisions:
 - The backend enforces prediction ownership through the participant session token and rejects prediction saves at or after the tournament deadline.
 - The prediction workspace topbar title is the room name, with the shared deadline countdown on the right.
 - The prediction workspace status strip always shows the active participant name for both editable and read-only views.
-- Mock group-stage matches now use the documented World Cup 2026 fixture order, dates, venues, and kickoff times.
+- Backend-owned group-stage matches use the documented World Cup 2026 fixture order, dates, venues, and kickoff times.
 - Kickoff times are stored as UTC ISO timestamps and displayed with `Intl.DateTimeFormat` in the browser's current time zone, without repeating a GMT offset in every match row.
-- Before production seed/migrations, fixture data should still be re-verified against FIFA's official schedule.
+- Before deployment, fixture data should still be re-verified against FIFA's official schedule.
 
 ## Local Development Notes
 
 Do not start the local app unless the user explicitly asks.
 
-Prediction reads/writes, match history, room list, room creation, room password entry, participant entry, and participant lists require the API. Without `DATABASE_URL`, the API uses in-memory room, participant, prediction, and match result storage; set `DATABASE_URL` and run migrations only when PostgreSQL-backed storage is needed.
+The normal app flow requires the API because tournament display data, prediction reads/writes, match history, room list, room creation, room password entry, participant entry, participant lists, room leaderboards, global leaderboard, and scoring call the backend. Without `DATABASE_URL`, the API uses in-memory room, participant, prediction, match result, and scoring storage plus a backend static tournament fallback; set `DATABASE_URL` and run migrations only when PostgreSQL-backed storage is needed.
 
 Docker/Compose is not part of the local development path. The local backend should be usable without Docker and without a local PostgreSQL instance by leaving `DATABASE_URL` empty.
 
-Start only the frontend when explicitly requested:
+Start only the frontend for isolated frontend/CSS work that does not need API data, and only when explicitly requested:
 
 ```bash
 npm run dev -w apps/web
@@ -316,7 +323,7 @@ The root command starts both frontend and backend:
 npm run dev
 ```
 
-Use the root command only when backend/API work needs both processes.
+Use the root command for the normal app flow or backend/API work that needs both processes, and only when explicitly requested.
 
 For split local startup, use:
 
@@ -341,13 +348,22 @@ Production Nginx may still proxy to `127.0.0.1:4100`, which is appropriate on th
 
 ## Notes For Next Session
 
-Recent UI work completed on 2026-06-09:
+Recent mock/data retirement completed on 2026-06-10:
+
+- Frontend local `mockFootball.ts` was removed; current product data now flows from backend endpoints.
+- Tournament data lives behind `GET /api/tournament`; PostgreSQL reads seeded tournament data and the no-database local path uses a backend static fallback.
+- The hidden `/admin/results` screen lists all tournament matches from backend tournament data and only pre-fills scores returned by `GET /api/match-history`.
+- In-memory match history starts empty; `DEFAULT_MATCH_RESULTS` was removed from the local no-database path.
+- The rooms match-history empty state is intentionally a single line: `Сыгранных матчей пока нет`.
+- The all-rooms top-5 leaderboard is loaded from `GET /api/leaderboard/global`; public prediction drill-in is allowed only after the shared deadline and only for current top-5 entries.
+
+Earlier UI work completed on 2026-06-09:
 
 - Participant rows in the room lobby now open that participant's backend-backed prediction workspace.
 - The current participant opens an editable workspace; other participants open the same workspace in read-only mode.
 - Read-only group details intentionally remove drag-and-drop behavior, score editing, and save actions.
 - `apps/web/src/components/deadline-countdown/DeadlineCountdown.tsx` owns the shared one-line deadline timer.
-- The mocked deadline is derived from the earliest `matches[].startsAtIso` value in `apps/web/src/data/mockFootball.ts`.
+- The shared deadline is loaded from `GET /api/tournament` instead of being derived from frontend mock data.
 - Local room deadline labels were removed from room cards, room overview stats, and workspace props.
 - Room lobby and workspace topbars use the room name as the only title text.
 - The active participant name belongs in the workspace status strip, not in the topbar title.
@@ -361,8 +377,11 @@ Recent UI work completed on 2026-06-09:
 - The frontend converts between UI team names and backend stable team IDs at the API boundary.
 - Participant prediction statuses in the lobby now come from backend summaries as `empty`, `draft`, or `saved`.
 - The rooms screen now loads match history through `GET /api/match-history` instead of the local completed-results mock.
+- Match history starts empty until results are entered through `/admin/results` or imported later.
+- The rooms screen now loads the all-rooms top-5 leaderboard through `GET /api/leaderboard/global`.
+- Global leaderboard participants open public read-only predictions through `GET /api/leaderboard/global/:roomId/predictions/:participantId` after the shared deadline.
 
-Recent backend groundwork completed on 2026-06-09:
+Earlier backend groundwork completed on 2026-06-09:
 
 - Initial PostgreSQL schema migration was added in `0001_initial_schema.sql`.
 - World Cup 2026 group-stage seed migration was added in `0002_seed_world_cup_2026_group_stage.sql`.
@@ -375,7 +394,7 @@ Recent backend groundwork completed on 2026-06-09:
 - PostgreSQL-backed match results from the hidden admin result-entry screen were wired to API endpoints with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 - Match result writes require the admin session, validate score ranges, reject unknown match IDs, and update public match history.
 - API tests were added for password hashing, room endpoints, participant entry/session endpoints, prediction endpoints, match result endpoints, and World Cup seed invariants.
-- Scoring recalculation and room leaderboard were completed with PostgreSQL `score_snapshots`, an in-memory fallback, automatic recalculation after prediction/result writes, manual admin recalculation, and `GET /api/rooms/:roomId/leaderboard`.
+- Scoring recalculation, room leaderboard, and global top-5 leaderboard were completed with PostgreSQL `score_snapshots`, an in-memory fallback, automatic recalculation after prediction/result writes, manual admin recalculation, `GET /api/rooms/:roomId/leaderboard`, and `GET /api/leaderboard/global`.
 
 ## Verification Policy
 
@@ -397,15 +416,15 @@ Requires explicit user permission:
 
 ## Backend Implementation Roadmap
 
-The UI is considered complete enough for the current mock stage. The next work should move the product from local mock state to backend-backed behavior in this order:
+The UI is considered complete enough for the current backend-backed MVP stage. The earlier local mock state was retired in favor of API-backed behavior in this order:
 
 1. PostgreSQL schema and migrations. Completed as initial migration scaffold; future schema changes should add new migration files.
-2. Seed data for World Cup 2026 groups, teams, and group-stage matches. Completed as `0002_seed_world_cup_2026_group_stage.sql`.
+2. Seed data for World Cup 2026 groups, teams, and group-stage matches. Completed as `0002_seed_world_cup_2026_group_stage.sql`, backend static no-database fallback data, and `GET /api/tournament`.
 3. Real room creation, public room list, room entry, and room password hashes. Completed as API endpoints with frontend wiring, in-memory local storage, and PostgreSQL storage when `DATABASE_URL` is set.
 4. Participant display-name entry, participant code hashes, and participant session ownership. Completed as API endpoints with frontend wiring, in-memory local storage, and PostgreSQL storage when `DATABASE_URL` is set.
 5. Prediction persistence for group standings and match scores, with backend deadline enforcement. Completed as API endpoints with frontend wiring, in-memory local storage, and PostgreSQL storage when `DATABASE_URL` is set.
 6. PostgreSQL-backed match results from the hidden admin result-entry screen, replacing current in-memory result storage. Completed as API endpoints with frontend match-history wiring, in-memory local storage, and PostgreSQL storage when `DATABASE_URL` is set.
-7. Scoring recalculation and room leaderboard. Completed as API-backed score snapshots, in-memory fallback scoring, admin recalculation, automatic recalculation after prediction/result writes, and a participant-session-protected room leaderboard endpoint.
+7. Scoring recalculation and room/global leaderboards. Completed as API-backed score snapshots, in-memory fallback scoring, admin recalculation, automatic recalculation after prediction/result writes, a participant-session-protected room leaderboard endpoint, and a public global top-5 leaderboard with post-deadline public prediction views.
 
 After these seven steps, continue with deployment hardening and scheduled automatic result sync against an external source.
 
@@ -413,3 +432,19 @@ Open product/UI work that can wait until the backend path is underway:
 
 - Verify World Cup 2026 group-stage fixture data against FIFA before production seed/migrations.
 - Add a rules explanation modal/window.
+
+## Mock/Data Retirement Roadmap
+
+Local mock/reference data was removed in this order:
+
+1. Backend-backed tournament data.
+   - Completed as `GET /api/tournament` with PostgreSQL reads, a backend static no-database fallback, frontend one-time loading, and UI adapters for prediction workspace, room lobby match count, rooms match history labels, admin result-entry match list, and the shared deadline countdown.
+2. Remove admin completed-results fallback data.
+   - Completed: the hidden `/admin/results` screen starts from empty/loading result state.
+   - Tournament matches come from `GET /api/tournament`; completed results come from `GET /api/match-history`, which starts empty until real results are entered or imported.
+3. Split frontend UI helpers away from mock data.
+   - Prediction snapshot helpers, score input helpers, and team name/id adapters now live in `apps/web/src/data/tournament.ts`.
+   - Remaining room UI types now live in `apps/web/src/data/rooms.ts`, and `apps/web/src/data/mockFootball.ts` was removed.
+4. API-backed all-rooms top-5 leaderboard.
+   - Completed as `GET /api/leaderboard/global`, filtered to participants with `totalScore > 0` and ordered by total points, exact score hits, and creation order.
+   - Global leaderboard participants open read-only public predictions through `GET /api/leaderboard/global/:roomId/predictions/:participantId` only after the shared deadline and only while they are current top-5 entries.

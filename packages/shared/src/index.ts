@@ -25,6 +25,16 @@ export type ParticipantSummary = {
   predictionStatus: PredictionStatus;
 };
 
+export type GlobalLeaderboardEntry = {
+  participantId: ParticipantId;
+  displayName: string;
+  roomId: RoomId;
+  roomName: string;
+  totalScore: number;
+  exactScoreHits: number;
+  predictionStatus: PredictionStatus;
+};
+
 export type ParticipantSession = {
   participantId: ParticipantId;
   token: string;
@@ -49,6 +59,7 @@ export type Match = {
   homeTeamId: TeamId;
   awayTeamId: TeamId;
   startsAtIso: string;
+  venue: string;
 };
 
 export type ScoreLine = {
@@ -65,6 +76,12 @@ export type MatchResult = {
   matchId: MatchId;
   score: ScoreLine;
   finishedAtIso: string;
+};
+
+export type TournamentData = {
+  deadlineIso: string;
+  groups: TournamentGroup[];
+  matches: Match[];
 };
 
 export type GroupStandingPrediction = {

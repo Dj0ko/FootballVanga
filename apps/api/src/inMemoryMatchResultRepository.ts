@@ -1,53 +1,8 @@
-import type { MatchResult } from "@footballvanga/shared";
-
 import type { InMemoryFootballStore, StoredMatchResult } from "./inMemoryRoomRepository.js";
 import type { MatchResultRepository } from "./matchResultRepository.js";
 import { TOURNAMENT_MATCH_IDS } from "./tournamentMetadata.js";
 
-const DEFAULT_MATCH_RESULTS: MatchResult[] = [
-  {
-    matchId: "a-1",
-    finishedAtIso: "2026-06-11T21:00:00Z",
-    score: {
-      home: 2,
-      away: 1
-    }
-  },
-  {
-    matchId: "a-2",
-    finishedAtIso: "2026-06-12T04:00:00Z",
-    score: {
-      home: 1,
-      away: 1
-    }
-  },
-  {
-    matchId: "b-1",
-    finishedAtIso: "2026-06-12T21:00:00Z",
-    score: {
-      home: 0,
-      away: 2
-    }
-  },
-  {
-    matchId: "d-1",
-    finishedAtIso: "2026-06-13T03:00:00Z",
-    score: {
-      home: 3,
-      away: 1
-    }
-  },
-  {
-    matchId: "b-2",
-    finishedAtIso: "2026-06-13T21:00:00Z",
-    score: {
-      home: 1,
-      away: 0
-    }
-  }
-];
-
-const cloneMatchResult = (result: MatchResult): MatchResult => ({
+const cloneMatchResult = (result: StoredMatchResult): StoredMatchResult => ({
   finishedAtIso: result.finishedAtIso,
   matchId: result.matchId,
   score: {
@@ -56,19 +11,7 @@ const cloneMatchResult = (result: MatchResult): MatchResult => ({
   }
 });
 
-const seedDefaultMatchResults = (store: InMemoryFootballStore) => {
-  if (store.matchResults.size > 0) {
-    return;
-  }
-
-  for (const result of DEFAULT_MATCH_RESULTS) {
-    store.matchResults.set(result.matchId, cloneMatchResult(result));
-  }
-};
-
 export const createInMemoryMatchResultRepository = (store: InMemoryFootballStore): MatchResultRepository => {
-  seedDefaultMatchResults(store);
-
   const knownMatchIds = new Set(TOURNAMENT_MATCH_IDS);
 
   const listMatchResults: MatchResultRepository["listMatchResults"] = async () =>

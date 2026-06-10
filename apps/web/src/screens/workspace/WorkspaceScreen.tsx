@@ -1,7 +1,7 @@
 import { ArrowLeft, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { fetchParticipantPrediction, saveMyPrediction } from "../../api/predictions";
+import { fetchGlobalLeaderboardPrediction, fetchParticipantPrediction, saveMyPrediction } from "../../api/predictions";
 import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineCountdown";
 import {
   createEmptyPredictionSnapshot,
@@ -9,23 +9,25 @@ import {
   createSavePredictionInput,
   getCompleteGroupIds,
   getPredictionStatusFromParticipantPrediction,
-  groups,
-  matches,
   type MatchScore
-} from "../../data/mockFootball";
+} from "../../data/tournament";
+import type { TournamentView } from "../../data/tournament";
 import { GroupPredictionBoard } from "./components/group-prediction-board/GroupPredictionBoard";
 import { GroupPredictionDetail } from "./components/group-prediction-detail/GroupPredictionDetail";
 import styles from "./WorkspaceScreen.module.css";
 
 type WorkspaceScreenProps = {
+  backButtonLabel?: string;
   isReadOnly: boolean;
-  onParticipantPredictionStatusChange: (participantId: string, predictionStatus: "saved" | "draft" | "empty") => void;
+  isPublicReadOnly?: boolean;
+  onParticipantPredictionStatusChange?: (participantId: string, predictionStatus: "saved" | "draft" | "empty") => void;
   onBackToLobby: () => void;
   participantId: string;
   participantName: string;
   roomId: string;
   roomName: string;
-  sessionToken: string;
+  sessionToken?: string;
+  tournament: TournamentView;
 };
 
 const cloneGroupOrders = (groupOrders: Record<string, string[]>) =>
@@ -41,19 +43,24 @@ const cloneMatchScores = (matchScores: Record<string, MatchScore>) =>
   >;
 
 export function WorkspaceScreen({
+  backButtonLabel = "Лобби",
   isReadOnly,
+  isPublicReadOnly = false,
   onParticipantPredictionStatusChange,
   onBackToLobby,
   participantId,
   participantName,
   roomId,
   roomName,
-  sessionToken
+  sessionToken,
+  tournament
 }: WorkspaceScreenProps) {
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
-  const [groupOrders, setGroupOrders] = useState(() => cloneGroupOrders(createEmptyPredictionSnapshot().groupOrders));
+  const [groupOrders, setGroupOrders] = useState(() =>
+    cloneGroupOrders(createEmptyPredictionSnapshot(tournament).groupOrders)
+  );
   const [matchScores, setMatchScores] = useState<Record<string, MatchScore>>(() =>
-    cloneMatchScores(createEmptyPredictionSnapshot().matchScores)
+    cloneMatchScores(createEmptyPredictionSnapshot(tournament).matchScores)
   );
   const [savedGroupIds, setSavedGroupIds] = useState<string[]>([]);
   const [isLocked, setIsLocked] = useState(false);
@@ -62,21 +69,21 @@ export function WorkspaceScreen({
   const [predictionError, setPredictionError] = useState("");
   const [saveError, setSaveError] = useState("");
 
-  const activeGroup = groups.find((group) => group.id === activeGroupId) ?? null;
-  const activeGroupIndex = activeGroup ? groups.findIndex((group) => group.id === activeGroup.id) : -1;
+  const activeGroup = tournament.groups.find((group) => group.id === activeGroupId) ?? null;
+  const activeGroupIndex = activeGroup ? tournament.groups.findIndex((group) => group.id === activeGroup.id) : -1;
   const activeGroupMatches = activeGroup
-    ? matches
-        .filter((match) => match.id.startsWith(`${activeGroup.id}-`))
+    ? tournament.matches
+        .filter((match) => match.groupId === activeGroup.id)
         .sort((leftMatch, rightMatch) => Date.parse(leftMatch.startsAtIso) - Date.parse(rightMatch.startsAtIso))
     : [];
   const filledScoresCount = Object.values(matchScores).filter((score) => score.home !== "" && score.away !== "").length;
   const savedGroupsCount = savedGroupIds.length;
-  const canEdit = !isReadOnly && !isLocked;
+  const canEdit = !isReadOnly && !isLocked && Boolean(sessionToken);
   const canSave = canEdit && !isPredictionLoading && !predictionError;
 
   useEffect(() => {
     let isCurrentRequest = true;
-    const emptySnapshot = createEmptyPredictionSnapshot();
+    const emptySnapshot = createEmptyPredictionSnapshot(tournament);
 
     setActiveGroupId(null);
     setGroupOrders(cloneGroupOrders(emptySnapshot.groupOrders));
@@ -89,8 +96,17 @@ export function WorkspaceScreen({
 
     const loadPrediction = async () => {
       try {
-        const response = await fetchParticipantPrediction(roomId, participantId, sessionToken);
-        const snapshot = createPredictionSnapshotFromParticipantPrediction(response.prediction);
+        const response = isPublicReadOnly
+          ? await fetchGlobalLeaderboardPrediction(roomId, participantId)
+          : sessionToken
+            ? await fetchParticipantPrediction(roomId, participantId, sessionToken)
+            : null;
+
+        if (!response) {
+          throw new Error("Не удалось загрузить прогноз.");
+        }
+
+        const snapshot = createPredictionSnapshotFromParticipantPrediction(tournament, response.prediction);
 
         if (!isCurrentRequest) {
           return;
@@ -100,9 +116,9 @@ export function WorkspaceScreen({
         setMatchScores(cloneMatchScores(snapshot.matchScores));
         setSavedGroupIds([...snapshot.savedGroupIds]);
         setIsLocked(response.isLocked);
-        onParticipantPredictionStatusChange(
+        onParticipantPredictionStatusChange?.(
           participantId,
-          getPredictionStatusFromParticipantPrediction(response.prediction)
+          getPredictionStatusFromParticipantPrediction(tournament, response.prediction)
         );
       } catch (error) {
         if (!isCurrentRequest) {
@@ -122,7 +138,7 @@ export function WorkspaceScreen({
     return () => {
       isCurrentRequest = false;
     };
-  }, [onParticipantPredictionStatusChange, participantId, roomId, sessionToken]);
+  }, [isPublicReadOnly, onParticipantPredictionStatusChange, participantId, roomId, sessionToken, tournament]);
 
   const reorderGroup = (groupId: string, teams: string[]) => {
     if (!canEdit) {
@@ -157,7 +173,7 @@ export function WorkspaceScreen({
   };
 
   const savePrediction = async (savedGroupId?: string) => {
-    if (!canSave || isSaving) {
+    if (!canSave || isSaving || !sessionToken) {
       return;
     }
 
@@ -165,9 +181,13 @@ export function WorkspaceScreen({
     setSaveError("");
 
     try {
-      const response = await saveMyPrediction(roomId, sessionToken, createSavePredictionInput(groupOrders, matchScores));
-      const snapshot = createPredictionSnapshotFromParticipantPrediction(response.prediction);
-      const nextSavedGroupIds = new Set(getCompleteGroupIds(snapshot));
+      const response = await saveMyPrediction(
+        roomId,
+        sessionToken,
+        createSavePredictionInput(tournament, groupOrders, matchScores)
+      );
+      const snapshot = createPredictionSnapshotFromParticipantPrediction(tournament, response.prediction);
+      const nextSavedGroupIds = new Set(getCompleteGroupIds(tournament, snapshot));
 
       if (savedGroupId) {
         nextSavedGroupIds.add(savedGroupId);
@@ -177,9 +197,9 @@ export function WorkspaceScreen({
       setMatchScores(cloneMatchScores(snapshot.matchScores));
       setSavedGroupIds([...nextSavedGroupIds]);
       setIsLocked(response.isLocked);
-      onParticipantPredictionStatusChange(
+      onParticipantPredictionStatusChange?.(
         participantId,
-        getPredictionStatusFromParticipantPrediction(response.prediction)
+        getPredictionStatusFromParticipantPrediction(tournament, response.prediction)
       );
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Не удалось сохранить прогноз.");
@@ -201,8 +221,8 @@ export function WorkspaceScreen({
       return;
     }
 
-    const nextIndex = (activeGroupIndex + direction + groups.length) % groups.length;
-    setActiveGroupId(groups[nextIndex]?.id ?? null);
+    const nextIndex = (activeGroupIndex + direction + tournament.groups.length) % tournament.groups.length;
+    setActiveGroupId(tournament.groups[nextIndex]?.id ?? null);
   };
   const statusText = isReadOnly
     ? "Только просмотр"
@@ -217,7 +237,7 @@ export function WorkspaceScreen({
       <header className={styles.topbar}>
         <button type="button" className={styles.backButton} onClick={onBackToLobby}>
           <ArrowLeft size={18} aria-hidden="true" />
-          Лобби
+          {backButtonLabel}
         </button>
 
         <div className={styles.titleBlock}>
@@ -226,7 +246,7 @@ export function WorkspaceScreen({
           </h1>
         </div>
 
-        <DeadlineCountdown className={styles.deadlineCountdown} />
+        <DeadlineCountdown className={styles.deadlineCountdown} startsAtIso={tournament.deadlineIso} />
       </header>
 
       <section className={styles.predictionArea} aria-label="Доска прогноза">
@@ -241,11 +261,11 @@ export function WorkspaceScreen({
           </div>
           <div>
             <span>Сохранено</span>
-            <strong>{savedGroupsCount} из {groups.length}</strong>
+            <strong>{savedGroupsCount} из {tournament.groups.length}</strong>
           </div>
           <div>
             <span>Счета</span>
-            <strong>{filledScoresCount} из {matches.length}</strong>
+            <strong>{filledScoresCount} из {tournament.matches.length}</strong>
           </div>
           {isReadOnly ? null : (
             <button
@@ -282,8 +302,9 @@ export function WorkspaceScreen({
           />
         ) : (
           <GroupPredictionBoard
-            groups={groups}
+            groups={tournament.groups}
             groupOrders={groupOrders}
+            matches={tournament.matches}
             matchScores={matchScores}
             savedGroupIds={savedGroupIds}
             onOpenGroup={setActiveGroupId}

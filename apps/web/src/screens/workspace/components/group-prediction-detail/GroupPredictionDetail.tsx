@@ -18,7 +18,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { ArrowLeft, ArrowRight, GripVertical, ListOrdered, Save, ShieldCheck } from "lucide-react";
 import type { CSSProperties } from "react";
 
-import type { Group, Match, MatchScore } from "../../../../data/mockFootball";
+import type { Group, Match, MatchScore } from "../../../../data/tournament";
 import { teamFlagUrls } from "../../../../data/teamFlags";
 import styles from "./GroupPredictionDetail.module.css";
 

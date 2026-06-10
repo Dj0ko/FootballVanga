@@ -2,7 +2,7 @@
 
 Last checked: 2026-06-09
 
-This document is the current product reference for the mocked tournament data and backend seed migration used by FootballVanga.
+This document is the current product reference for backend-owned tournament data, the no-database static fallback, and the backend seed migration used by FootballVanga.
 
 Sources:
 

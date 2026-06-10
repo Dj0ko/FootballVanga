@@ -1,6 +1,6 @@
 import { Users } from "lucide-react";
 
-import type { PredictionStatus, RoomParticipant } from "../../../../data/mockFootball";
+import type { PredictionStatus, RoomParticipant } from "../../../../data/rooms";
 import styles from "./ParticipantsSidebar.module.css";
 
 type ParticipantsSidebarProps = {

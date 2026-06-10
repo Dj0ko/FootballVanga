@@ -1,14 +1,11 @@
 import { ArrowRight, Lock, LogIn, Plus, ShieldCheck, Users } from "lucide-react";
 import { useState } from "react";
 
+import type { GlobalLeaderboardEntry, MatchResult } from "@footballvanga/shared";
+
 import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineCountdown";
-import {
-  globalLeaders,
-  matches,
-  type CompletedMatchResult,
-  type CreateRoomInput,
-  type RoomSummary
-} from "../../data/mockFootball";
+import { type CreateRoomInput, type RoomSummary } from "../../data/rooms";
+import type { Match } from "../../data/tournament";
 import { CreateRoomForm } from "./components/create-room-form/CreateRoomForm";
 import { MatchResultsHistory } from "./components/match-results-history/MatchResultsHistory";
 import { RoomsLeaderboard } from "./components/rooms-leaderboard/RoomsLeaderboard";
@@ -16,13 +13,20 @@ import styles from "./RoomsScreen.module.css";
 
 type RoomsScreenProps = {
   error: string;
+  globalLeaderboard: GlobalLeaderboardEntry[];
+  globalLeaderboardError: string;
   isCreatePending: boolean;
+  isGlobalLeaderboardLoading: boolean;
   isLoading: boolean;
-  matchResults: CompletedMatchResult[];
+  deadlineIso: string;
+  matches: Match[];
+  matchResults: MatchResult[];
   matchResultsError: string;
   rooms: RoomSummary[];
   onCreateRoom: (room: CreateRoomInput) => Promise<boolean>;
+  onOpenGlobalLeader: (leader: GlobalLeaderboardEntry) => void;
   onOpenRoom: (room: RoomSummary) => void;
+  onRetryGlobalLeaderboard: () => void;
   onRetry: () => void;
 };
 
@@ -47,13 +51,20 @@ const getActiveRoomsLabel = (count: number) => {
 
 export function RoomsScreen({
   error,
+  globalLeaderboard,
+  globalLeaderboardError,
   isCreatePending,
+  isGlobalLeaderboardLoading,
   isLoading,
+  deadlineIso,
+  matches,
   matchResults,
   matchResultsError,
   rooms,
   onCreateRoom,
+  onOpenGlobalLeader,
   onOpenRoom,
+  onRetryGlobalLeaderboard,
   onRetry
 }: RoomsScreenProps) {
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
@@ -77,7 +88,7 @@ export function RoomsScreen({
           <p className={styles.eyebrow}>Прогнозы группового этапа</p>
           <h1 className={styles.title}>Комнаты</h1>
         </div>
-        <DeadlineCountdown className={styles.deadlineCountdown} />
+        <DeadlineCountdown className={styles.deadlineCountdown} startsAtIso={deadlineIso} />
         <button
           type="button"
           className={styles.createButton}
@@ -159,7 +170,13 @@ export function RoomsScreen({
           <MatchResultsHistory matches={matches} results={matchResults} />
         </div>
 
-        <RoomsLeaderboard leaders={globalLeaders} />
+        <RoomsLeaderboard
+          error={globalLeaderboardError}
+          isLoading={isGlobalLeaderboardLoading}
+          leaders={globalLeaderboard}
+          onOpenLeader={onOpenGlobalLeader}
+          onRetry={onRetryGlobalLeaderboard}
+        />
       </div>
     </main>
   );

@@ -28,15 +28,26 @@
   list-style: none;
 }
 
-.list li {
+.leaderButton {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) auto;
+  width: 100%;
   align-items: center;
   gap: 10px;
   border: 1px solid #e2e8df;
   border-radius: 8px;
   padding: 10px;
   background: #ffffff;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.leaderButton:hover,
+.leaderButton:focus-visible {
+  border-color: #9fcbb5;
+  background: #f7fbf8;
 }
 
 .rank {
@@ -85,4 +96,31 @@
 .score strong {
   color: #207d4f;
   font-size: 1.15rem;
+}
+
+.state {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  border: 1px solid #e2e8df;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+  color: #405047;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.state p {
+  margin: 0;
+}
+
+.state button {
+  justify-self: start;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 11px;
+  background: #207d4f;
+  color: #ffffff;
+  font-weight: 900;
 }

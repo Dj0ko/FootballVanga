@@ -2,7 +2,7 @@ import { ArrowLeft, KeyRound, LogIn, UserPlus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineCountdown";
-import type { RoomSummary } from "../../data/mockFootball";
+import type { RoomSummary } from "../../data/rooms";
 import styles from "./RoomEntryScreen.module.css";
 
 export type ParticipantEntryInput = {

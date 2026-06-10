@@ -31,6 +31,37 @@ button {
   cursor: pointer;
 }
 
+.app-status {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.app-status h1 {
+  margin-bottom: 0;
+  font-size: 24px;
+}
+
+.app-status p {
+  max-width: 420px;
+  margin-bottom: 0;
+  color: #667064;
+}
+
+.app-status button {
+  justify-self: center;
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #1f7a4f;
+  color: #ffffff;
+  font-weight: 800;
+}
+
 h1,
 h2,
 h3,

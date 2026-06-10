@@ -1,7 +1,6 @@
 import { Timer } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { predictionDeadlineStartsAtIso } from "../../data/mockFootball";
 import styles from "./DeadlineCountdown.module.css";
 
 type DeadlineCountdownProps = {
@@ -37,15 +36,15 @@ const formatDeadlineDate = (startsAtIso: string) =>
 
 export function DeadlineCountdown({
   className,
-  startsAtIso = predictionDeadlineStartsAtIso,
+  startsAtIso,
   variant = "light"
 }: DeadlineCountdownProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const deadlineMs = useMemo(() => Date.parse(startsAtIso), [startsAtIso]);
+  const deadlineMs = useMemo(() => (startsAtIso ? Date.parse(startsAtIso) : Number.NaN), [startsAtIso]);
   const isValidDeadline = Number.isFinite(deadlineMs);
   const remainingMs = isValidDeadline ? deadlineMs - nowMs : 0;
   const isExpired = remainingMs <= 0;
-  const deadlineDateLabel = isValidDeadline ? formatDeadlineDate(startsAtIso) : "";
+  const deadlineDateLabel = isValidDeadline && startsAtIso ? formatDeadlineDate(startsAtIso) : "";
   const classNames = [
     styles.countdown,
     variant === "dark" ? styles.dark : styles.light,

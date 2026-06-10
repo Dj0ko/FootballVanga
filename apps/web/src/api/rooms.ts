@@ -1,6 +1,6 @@
-import type { ParticipantSession, PredictionStatus } from "@footballvanga/shared";
+import type { MatchResult, ParticipantSession, PredictionStatus } from "@footballvanga/shared";
 
-import type { CompletedMatchResult, CreateRoomInput, RoomParticipant, RoomSummary } from "../data/mockFootball";
+import type { CreateRoomInput, RoomParticipant, RoomSummary } from "../data/rooms";
 
 type ApiRoomSummary = {
   deadlineIso: string;
@@ -15,7 +15,7 @@ type RoomsResponse = {
 };
 
 type MatchHistoryResponse = {
-  results: CompletedMatchResult[];
+  results: MatchResult[];
 };
 
 type CreateRoomResponse = {

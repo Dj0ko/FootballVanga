@@ -49,7 +49,7 @@ const getAdminCookie = async (app: Awaited<ReturnType<typeof buildServer>>) => {
   return adminCookie;
 };
 
-test("GET /api/match-history returns public match results from result storage", async (t) => {
+test("GET /api/match-history starts empty before real match results are saved", async (t) => {
   const app = await buildServer(baseConfig);
 
   t.after(async () => {
@@ -63,15 +63,7 @@ test("GET /api/match-history returns public match results from result storage", 
   const body = readJson<MatchHistoryResponse>(response.body);
 
   assert.equal(response.statusCode, 200);
-  assert.ok(body.results.length > 0);
-  assert.deepEqual(body.results[0], {
-    finishedAtIso: "2026-06-13T21:00:00Z",
-    matchId: "b-2",
-    score: {
-      away: 0,
-      home: 1
-    }
-  });
+  assert.deepEqual(body.results, []);
 });
 
 test("admin match result writes require admin configuration and session", async (t) => {

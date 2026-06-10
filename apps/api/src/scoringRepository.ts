@@ -1,4 +1,9 @@
-import { SCORING_RULES, type ParticipantSummary, type PredictionStatus } from "@footballvanga/shared";
+import {
+  SCORING_RULES,
+  type GlobalLeaderboardEntry,
+  type ParticipantSummary,
+  type PredictionStatus
+} from "@footballvanga/shared";
 
 import type { DatabasePool } from "./database.js";
 
@@ -7,6 +12,7 @@ export type ScoringRecalculationResult = {
 };
 
 export type ScoringRepository = {
+  listGlobalLeaderboard: (limit: number) => Promise<GlobalLeaderboardEntry[]>;
   listRoomLeaderboard: (roomId: string) => Promise<ParticipantSummary[]>;
   recalculateScores: () => Promise<ScoringRecalculationResult>;
 };
@@ -19,11 +25,27 @@ type ParticipantRow = {
   total_score: number | null;
 };
 
+type GlobalLeaderboardRow = ParticipantRow & {
+  participant_id: string;
+  room_id: string;
+  room_name: string;
+};
+
 const toParticipantSummary = (row: ParticipantRow): ParticipantSummary => ({
   displayName: row.display_name,
   exactScoreHits: row.exact_score_hits ?? 0,
   id: row.id,
   predictionStatus: row.prediction_status,
+  totalScore: row.total_score ?? 0
+});
+
+const toGlobalLeaderboardEntry = (row: GlobalLeaderboardRow): GlobalLeaderboardEntry => ({
+  displayName: row.display_name,
+  exactScoreHits: row.exact_score_hits ?? 0,
+  participantId: row.participant_id,
+  predictionStatus: row.prediction_status,
+  roomId: row.room_id,
+  roomName: row.room_name,
   totalScore: row.total_score ?? 0
 });
 
@@ -46,6 +68,33 @@ const participantPredictionStatusSql = `
 `;
 
 export const createScoringRepository = (pool: DatabasePool): ScoringRepository => {
+  const listGlobalLeaderboard: ScoringRepository["listGlobalLeaderboard"] = async (limit) => {
+    const result = await pool.query<GlobalLeaderboardRow>(
+      `
+        SELECT
+          participants.id AS participant_id,
+          participants.display_name,
+          participants.room_id,
+          rooms.name AS room_name,
+          COALESCE(score_snapshots.total_points, 0) AS total_score,
+          COALESCE(score_snapshots.exact_score_hits, 0) AS exact_score_hits,
+          ${participantPredictionStatusSql}
+        FROM participants
+        JOIN rooms ON rooms.id = participants.room_id
+        LEFT JOIN score_snapshots ON score_snapshots.participant_id = participants.id
+        WHERE COALESCE(score_snapshots.total_points, 0) > 0
+        ORDER BY
+          COALESCE(score_snapshots.total_points, 0) DESC,
+          COALESCE(score_snapshots.exact_score_hits, 0) DESC,
+          participants.created_at ASC
+        LIMIT $1
+      `,
+      [limit]
+    );
+
+    return result.rows.map(toGlobalLeaderboardEntry);
+  };
+
   const listRoomLeaderboard: ScoringRepository["listRoomLeaderboard"] = async (roomId) => {
     const result = await pool.query<ParticipantRow>(
       `
@@ -174,6 +223,7 @@ export const createScoringRepository = (pool: DatabasePool): ScoringRepository =
   };
 
   return {
+    listGlobalLeaderboard,
     listRoomLeaderboard,
     recalculateScores
   };

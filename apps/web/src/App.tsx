@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
-import type { ParticipantSession, PredictionStatus } from "@footballvanga/shared";
+import type { GlobalLeaderboardEntry, MatchResult, ParticipantSession, PredictionStatus } from "@footballvanga/shared";
 
+import { fetchGlobalLeaderboard } from "./api/leaderboard";
 import {
   ApiError,
   createRoom as createRoomRequest,
@@ -11,12 +12,9 @@ import {
   fetchRoomLeaderboard,
   fetchRooms
 } from "./api/rooms";
-import {
-  type CompletedMatchResult,
-  type CreateRoomInput,
-  type RoomParticipant,
-  type RoomSummary
-} from "./data/mockFootball";
+import { fetchTournament } from "./api/tournament";
+import { type CreateRoomInput, type RoomParticipant, type RoomSummary } from "./data/rooms";
+import type { TournamentView } from "./data/tournament";
 import { AdminResultsScreen } from "./screens/admin-results/AdminResultsScreen";
 import {
   RoomEntryScreen,
@@ -29,7 +27,7 @@ import { RoomsScreen } from "./screens/rooms/RoomsScreen";
 import { WelcomeScreen } from "./screens/welcome/WelcomeScreen";
 import { WorkspaceScreen } from "./screens/workspace/WorkspaceScreen";
 
-type AppScreen = "welcome" | "rooms" | "roomEntry" | "roomLobby" | "workspace";
+type AppScreen = "welcome" | "rooms" | "roomEntry" | "roomLobby" | "workspace" | "globalPrediction";
 
 export default function App() {
   const isAdminResultsRoute = window.location.pathname === "/admin/results";
@@ -39,12 +37,32 @@ export default function App() {
   const [currentParticipant, setCurrentParticipant] = useState<RoomParticipant | null>(null);
   const [currentParticipantSession, setCurrentParticipantSession] = useState<ParticipantSession | null>(null);
   const [viewedParticipant, setViewedParticipant] = useState<RoomParticipant | null>(null);
+  const [viewedGlobalLeader, setViewedGlobalLeader] = useState<GlobalLeaderboardEntry | null>(null);
   const [participantsByRoomId, setParticipantsByRoomId] = useState<Record<string, RoomParticipant[]>>({});
-  const [matchResults, setMatchResults] = useState<CompletedMatchResult[]>([]);
+  const [globalLeaderboard, setGlobalLeaderboard] = useState<GlobalLeaderboardEntry[]>([]);
+  const [globalLeaderboardError, setGlobalLeaderboardError] = useState("");
+  const [isGlobalLeaderboardLoading, setIsGlobalLeaderboardLoading] = useState(false);
+  const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
   const [matchResultsError, setMatchResultsError] = useState("");
   const [isRoomsLoading, setIsRoomsLoading] = useState(false);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [roomsError, setRoomsError] = useState("");
+  const [tournament, setTournament] = useState<TournamentView | null>(null);
+  const [tournamentError, setTournamentError] = useState("");
+  const [isTournamentLoading, setIsTournamentLoading] = useState(true);
+
+  const loadTournament = useCallback(async () => {
+    setIsTournamentLoading(true);
+    setTournamentError("");
+
+    try {
+      setTournament(await fetchTournament());
+    } catch (error) {
+      setTournamentError(error instanceof Error ? error.message : "Не удалось загрузить данные турнира.");
+    } finally {
+      setIsTournamentLoading(false);
+    }
+  }, []);
 
   const loadRooms = useCallback(async () => {
     setIsRoomsLoading(true);
@@ -69,12 +87,30 @@ export default function App() {
     }
   }, []);
 
+  const loadGlobalLeaderboard = useCallback(async () => {
+    setIsGlobalLeaderboardLoading(true);
+    setGlobalLeaderboardError("");
+
+    try {
+      setGlobalLeaderboard(await fetchGlobalLeaderboard());
+    } catch (error) {
+      setGlobalLeaderboardError(error instanceof Error ? error.message : "Не удалось загрузить лидеров.");
+    } finally {
+      setIsGlobalLeaderboardLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTournament();
+  }, [loadTournament]);
+
   useEffect(() => {
     if (screen === "rooms") {
       void loadRooms();
       void loadMatchResults();
+      void loadGlobalLeaderboard();
     }
-  }, [loadMatchResults, loadRooms, screen]);
+  }, [loadGlobalLeaderboard, loadMatchResults, loadRooms, screen]);
 
   const refreshRoomLeaderboard = useCallback(async (roomId: string, sessionToken: string) => {
     try {
@@ -132,6 +168,7 @@ export default function App() {
     setCurrentParticipant(null);
     setCurrentParticipantSession(null);
     setViewedParticipant(null);
+    setViewedGlobalLeader(null);
     setScreen("roomEntry");
   };
 
@@ -185,6 +222,7 @@ export default function App() {
       setCurrentParticipant(result.participant);
       setCurrentParticipantSession(result.session);
       setViewedParticipant(null);
+      setViewedGlobalLeader(null);
       setScreen("roomLobby");
       return "success";
     } catch (error) {
@@ -198,7 +236,14 @@ export default function App() {
 
   const openWorkspace = (participant: RoomParticipant) => {
     setViewedParticipant(participant);
+    setViewedGlobalLeader(null);
     setScreen("workspace");
+  };
+
+  const openGlobalLeaderPrediction = (leader: GlobalLeaderboardEntry) => {
+    setViewedGlobalLeader(leader);
+    setViewedParticipant(null);
+    setScreen("globalPrediction");
   };
 
   const updateParticipantPredictionStatus = useCallback(
@@ -224,24 +269,59 @@ export default function App() {
   );
 
   if (isAdminResultsRoute) {
-    return <AdminResultsScreen />;
+    if (!tournament) {
+      return (
+        <main className="app-status" role={tournamentError ? "alert" : "status"}>
+          <h1>{tournamentError ? "Турнир недоступен" : "Загружаем турнир"}</h1>
+          {tournamentError ? <p>{tournamentError}</p> : null}
+          {tournamentError ? (
+            <button type="button" onClick={loadTournament} disabled={isTournamentLoading}>
+              Повторить
+            </button>
+          ) : null}
+        </main>
+      );
+    }
+
+    return <AdminResultsScreen tournament={tournament} />;
+  }
+
+  if (!tournament) {
+    return (
+      <main className="app-status" role={tournamentError ? "alert" : "status"}>
+        <h1>{tournamentError ? "Турнир недоступен" : "Загружаем турнир"}</h1>
+        {tournamentError ? <p>{tournamentError}</p> : null}
+        {tournamentError ? (
+          <button type="button" onClick={loadTournament} disabled={isTournamentLoading}>
+            Повторить
+          </button>
+        ) : null}
+      </main>
+    );
   }
 
   if (screen === "welcome") {
-    return <WelcomeScreen onContinue={() => setScreen("rooms")} />;
+    return <WelcomeScreen deadlineIso={tournament.deadlineIso} onContinue={() => setScreen("rooms")} />;
   }
 
   if (screen === "rooms") {
     return (
       <RoomsScreen
+        deadlineIso={tournament.deadlineIso}
         error={roomsError}
         isCreatePending={isCreatingRoom}
+        globalLeaderboard={globalLeaderboard}
+        globalLeaderboardError={globalLeaderboardError}
         isLoading={isRoomsLoading}
+        isGlobalLeaderboardLoading={isGlobalLeaderboardLoading}
+        matches={tournament.matches}
         matchResults={matchResults}
         matchResultsError={matchResultsError}
         rooms={rooms}
         onCreateRoom={createRoom}
+        onOpenGlobalLeader={openGlobalLeaderPrediction}
         onOpenRoom={openRoomEntry}
+        onRetryGlobalLeaderboard={loadGlobalLeaderboard}
         onRetry={loadRooms}
       />
     );
@@ -266,12 +346,15 @@ export default function App() {
 
     return (
       <RoomLobbyScreen
+        deadlineIso={tournament.deadlineIso}
+        matchCount={tournament.matches.length}
         participants={activeRoomParticipants}
         room={activeRoom}
         onBackToRooms={() => {
           setCurrentParticipant(null);
           setCurrentParticipantSession(null);
           setViewedParticipant(null);
+          setViewedGlobalLeader(null);
           setScreen("rooms");
         }}
         onOpenMyPrediction={() => openWorkspace(currentParticipant)}
@@ -292,21 +375,45 @@ export default function App() {
         roomId={activeRoom.id}
         roomName={activeRoom.name}
         sessionToken={currentParticipantSession.token}
+        tournament={tournament}
         onBackToLobby={() => setScreen("roomLobby")}
+      />
+    );
+  }
+
+  if (screen === "globalPrediction" && viewedGlobalLeader) {
+    return (
+      <WorkspaceScreen
+        backButtonLabel="Комнаты"
+        isPublicReadOnly
+        isReadOnly
+        participantId={viewedGlobalLeader.participantId}
+        participantName={viewedGlobalLeader.displayName}
+        roomId={viewedGlobalLeader.roomId}
+        roomName={viewedGlobalLeader.roomName}
+        tournament={tournament}
+        onBackToLobby={() => setScreen("rooms")}
       />
     );
   }
 
   return (
     <RoomsScreen
+      deadlineIso={tournament.deadlineIso}
       error={roomsError}
       isCreatePending={isCreatingRoom}
+      globalLeaderboard={globalLeaderboard}
+      globalLeaderboardError={globalLeaderboardError}
       isLoading={isRoomsLoading}
+      isGlobalLeaderboardLoading={isGlobalLeaderboardLoading}
+      matches={tournament.matches}
       matchResults={matchResults}
       matchResultsError={matchResultsError}
       rooms={rooms}
       onCreateRoom={createRoom}
+      onOpenGlobalLeader={openGlobalLeaderPrediction}
       onOpenRoom={openRoomEntry}
+      onRetryGlobalLeaderboard={loadGlobalLeaderboard}
       onRetry={loadRooms}
     />
   );

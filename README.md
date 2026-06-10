@@ -19,7 +19,7 @@ Install dependencies:
 npm install
 ```
 
-Run only the frontend for current UI work:
+Run only the frontend for isolated frontend/CSS work that does not need API data:
 
 ```bash
 npm run dev -w apps/web
@@ -31,7 +31,7 @@ Then open:
 http://localhost:5173/
 ```
 
-Tournament display data still comes from the local World Cup 2026 dataset. Room list, room creation, room password entry, participant entry, participant lists, room leaderboards, match history, admin result writes, scoring recalculation, and prediction reads/writes call the API. Without `DATABASE_URL`, the API uses local in-memory room, participant, prediction, match result, and scoring storage; rooms, participants, sessions, predictions, match results, and scores reset after the API restarts. Set `DATABASE_URL` and run migrations when PostgreSQL-backed storage is needed.
+The normal app flow requires the API because tournament display data, room list, room creation, room password entry, participant entry, participant lists, room leaderboards, global top-5 leaderboard, match history, admin result writes, scoring recalculation, and prediction reads/writes call the backend. Without `DATABASE_URL`, the API uses local in-memory room, participant, prediction, match result, and scoring storage plus a backend static tournament fallback; match history starts empty until admin/imported results are saved, and rooms, participants, sessions, predictions, match results, and scores reset after the API restarts. Set `DATABASE_URL` and run migrations when PostgreSQL-backed storage is needed.
 
 Run both apps when backend/API work is needed:
 

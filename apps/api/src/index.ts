@@ -37,6 +37,11 @@ import {
   getParticipantSessionExpiresAt,
   hashParticipantSessionToken
 } from "./sessionToken.js";
+import {
+  createStaticTournamentRepository,
+  createTournamentRepository,
+  type TournamentRepository
+} from "./tournamentRepository.js";
 import type { TournamentPredictionMetadata } from "./tournamentMetadata.js";
 
 type AdminLoginBody = {
@@ -68,12 +73,17 @@ type SavePredictionBody = {
   matchScores?: unknown;
 };
 
+type GlobalLeaderboardQuery = {
+  limit?: string;
+};
+
 type BuildServerDependencies = {
   matchResultRepository?: MatchResultRepository | null;
   participantRepository?: ParticipantRepository | null;
   predictionRepository?: PredictionRepository | null;
   roomRepository?: RoomRepository | null;
   scoringRepository?: ScoringRepository | null;
+  tournamentRepository?: TournamentRepository | null;
 };
 
 const isScoreValue = (value: unknown): value is number =>
@@ -84,6 +94,8 @@ const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
 
 const MIN_ROOM_PASSWORD_LENGTH = 4;
 const MIN_PARTICIPANT_CODE_LENGTH = 4;
+const DEFAULT_GLOBAL_LEADERBOARD_LIMIT = 5;
+const MAX_GLOBAL_LEADERBOARD_LIMIT = 50;
 
 const isAdminConfigured = (config: ApiConfig) => Boolean(config.adminPasswordHash && config.adminSessionSecret);
 
@@ -125,6 +137,16 @@ const getAuthenticatedParticipant = async (
 
 const isPredictionLocked = (deadlineIso: string | null) =>
   deadlineIso ? Date.now() >= Date.parse(deadlineIso) : false;
+
+const getGlobalLeaderboardLimit = (limit: string | undefined) => {
+  const parsedLimit = Number(limit);
+
+  if (!Number.isInteger(parsedLimit) || parsedLimit <= 0) {
+    return DEFAULT_GLOBAL_LEADERBOARD_LIMIT;
+  }
+
+  return Math.min(parsedLimit, MAX_GLOBAL_LEADERBOARD_LIMIT);
+};
 
 const validatePredictionBody = (
   body: SavePredictionBody,
@@ -263,7 +285,8 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
     dependencies.roomRepository === undefined &&
     dependencies.participantRepository === undefined &&
     dependencies.predictionRepository === undefined &&
-    dependencies.scoringRepository === undefined;
+    dependencies.scoringRepository === undefined &&
+    dependencies.tournamentRepository === undefined;
   const shouldCreateDatabasePool = shouldCreateStorage;
   const databasePool = shouldCreateDatabasePool && config.databaseUrl ? createDatabasePool(config.databaseUrl) : null;
   const inMemoryStore = shouldCreateStorage && !databasePool ? createInMemoryFootballStore() : null;
@@ -300,6 +323,11 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
         ? createInMemoryScoringRepository(inMemoryStore)
         : null
     : null;
+  const tournamentRepository = shouldCreateStorage
+    ? databasePool
+      ? createTournamentRepository(databasePool)
+      : createStaticTournamentRepository()
+    : null;
   const resolvedMatchResultRepository =
     dependencies.matchResultRepository === undefined ? matchResultRepository : dependencies.matchResultRepository;
   const resolvedRoomRepository = dependencies.roomRepository === undefined ? roomRepository : dependencies.roomRepository;
@@ -309,6 +337,8 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
     dependencies.predictionRepository === undefined ? predictionRepository : dependencies.predictionRepository;
   const resolvedScoringRepository =
     dependencies.scoringRepository === undefined ? scoringRepository : dependencies.scoringRepository;
+  const resolvedTournamentRepository =
+    dependencies.tournamentRepository === undefined ? tournamentRepository : dependencies.tournamentRepository;
   const app = Fastify({
     logger: config.nodeEnv !== "test"
   });
@@ -335,6 +365,91 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
     stage: "scaffold",
     scoring: SCORING_RULES
   }));
+
+  app.get("/api/tournament", async (_request, reply) => {
+    if (!resolvedTournamentRepository) {
+      reply.code(503);
+      return {
+        message: "Tournament data is not configured."
+      };
+    }
+
+    return resolvedTournamentRepository.getTournament();
+  });
+
+  app.get<{ Querystring: GlobalLeaderboardQuery }>("/api/leaderboard/global", async (request, reply) => {
+    if (!resolvedScoringRepository) {
+      reply.code(503);
+      return {
+        message: "Leaderboard storage is not configured."
+      };
+    }
+
+    return {
+      leaderboard: await resolvedScoringRepository.listGlobalLeaderboard(
+        getGlobalLeaderboardLimit(request.query.limit)
+      )
+    };
+  });
+
+  app.get<{ Params: { participantId: string; roomId: string } }>(
+    "/api/leaderboard/global/:roomId/predictions/:participantId",
+    async (request, reply) => {
+      if (!resolvedPredictionRepository || !resolvedScoringRepository) {
+        reply.code(503);
+        return {
+          message: "Prediction storage is not configured."
+        };
+      }
+
+      const metadata = await resolvedPredictionRepository.getTournamentMetadata();
+
+      if (!metadata.deadlineIso) {
+        reply.code(503);
+        return {
+          message: "Prediction deadline is not configured."
+        };
+      }
+
+      if (!isPredictionLocked(metadata.deadlineIso)) {
+        reply.code(423);
+        return {
+          message: "Прогнозы лидеров откроются после дедлайна."
+        };
+      }
+
+      const leaderboard = await resolvedScoringRepository.listGlobalLeaderboard(DEFAULT_GLOBAL_LEADERBOARD_LIMIT);
+      const isCurrentGlobalLeader = leaderboard.some(
+        (leader) =>
+          leader.roomId === request.params.roomId && leader.participantId === request.params.participantId
+      );
+
+      if (!isCurrentGlobalLeader) {
+        reply.code(404);
+        return {
+          message: "Leaderboard participant was not found."
+        };
+      }
+
+      const prediction = await resolvedPredictionRepository.getParticipantPrediction({
+        participantId: request.params.participantId,
+        roomId: request.params.roomId
+      });
+
+      if (!prediction) {
+        reply.code(404);
+        return {
+          message: "Participant was not found."
+        };
+      }
+
+      return {
+        deadlineIso: metadata.deadlineIso,
+        isLocked: true,
+        prediction
+      };
+    }
+  );
 
   app.get("/api/rooms", async (_request, reply) => {
     if (!resolvedRoomRepository) {

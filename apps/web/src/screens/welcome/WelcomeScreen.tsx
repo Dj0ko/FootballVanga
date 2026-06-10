@@ -4,14 +4,15 @@ import { DeadlineCountdown } from "../../components/deadline-countdown/DeadlineC
 import styles from "./WelcomeScreen.module.css";
 
 type WelcomeScreenProps = {
+  deadlineIso: string;
   onContinue: () => void;
 };
 
-export function WelcomeScreen({ onContinue }: WelcomeScreenProps) {
+export function WelcomeScreen({ deadlineIso, onContinue }: WelcomeScreenProps) {
   return (
     <main className={styles.shell}>
       <section className={styles.hero} aria-labelledby="welcome-title">
-        <DeadlineCountdown className={styles.deadlineCountdown} variant="dark" />
+        <DeadlineCountdown className={styles.deadlineCountdown} startsAtIso={deadlineIso} variant="dark" />
 
         <div className={styles.field} aria-hidden="true">
           <span className={`${styles.penaltyBox} ${styles.penaltyBoxLeft}`} />

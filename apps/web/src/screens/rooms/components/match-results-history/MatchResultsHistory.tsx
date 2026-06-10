@@ -1,17 +1,19 @@
 import { History } from "lucide-react";
 
-import type { CompletedMatchResult, Match } from "../../../../data/mockFootball";
+import type { MatchResult } from "@footballvanga/shared";
+
+import type { Match } from "../../../../data/tournament";
 import { teamFlagUrls } from "../../../../data/teamFlags";
 import styles from "./MatchResultsHistory.module.css";
 
 type MatchResultsHistoryProps = {
   matches: Match[];
-  results: CompletedMatchResult[];
+  results: MatchResult[];
 };
 
 type CompletedMatch = {
   match: Match;
-  result: CompletedMatchResult;
+  result: MatchResult;
 };
 
 const formatMatchDate = (startsAtIso: string) =>
@@ -22,7 +24,7 @@ const formatMatchDate = (startsAtIso: string) =>
     month: "short"
   }).format(new Date(startsAtIso));
 
-const getCompletedMatches = (matches: Match[], results: CompletedMatchResult[]): CompletedMatch[] => {
+const getCompletedMatches = (matches: Match[], results: MatchResult[]): CompletedMatch[] => {
   const matchesById = new Map(matches.map((match) => [match.id, match]));
 
   return results
@@ -96,8 +98,7 @@ export function MatchResultsHistory({ matches, results }: MatchResultsHistoryPro
         </div>
       ) : (
         <div className={styles.emptyState} role="status">
-          <strong>Матчи еще не сыграны</strong>
-          <span>Результаты появятся здесь после завершения игр.</span>
+          <strong>Сыгранных матчей пока нет</strong>
         </div>
       )}
     </section>

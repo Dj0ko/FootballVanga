@@ -22,6 +22,11 @@ export const fetchParticipantPrediction = async (
     }
   );
 
+export const fetchGlobalLeaderboardPrediction = async (roomId: string, participantId: string) =>
+  requestJson<PredictionResponse>(
+    `/api/leaderboard/global/${encodeURIComponent(roomId)}/predictions/${encodeURIComponent(participantId)}`
+  );
+
 export const saveMyPrediction = async (
   roomId: string,
   sessionToken: string,

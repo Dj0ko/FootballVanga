@@ -1,17 +1,16 @@
 import { ArrowLeft, LockKeyhole, LogOut, RotateCw, Save, ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
-import { completedMatchResults, matches, type CompletedMatchResult, type Match } from "../../data/mockFootball";
+import type { MatchResult } from "@footballvanga/shared";
+
+import { fetchMatchHistory } from "../../api/rooms";
 import { teamFlagUrls } from "../../data/teamFlags";
+import type { Match, TournamentView } from "../../data/tournament";
 import styles from "./AdminResultsScreen.module.css";
 
 type DraftScore = {
   away: string;
   home: string;
-};
-
-type MatchHistoryResponse = {
-  results?: CompletedMatchResult[];
 };
 
 type AdminSessionResponse = {
@@ -21,7 +20,11 @@ type AdminSessionResponse = {
 
 type AdminResultResponse = {
   message?: string;
-  result?: CompletedMatchResult;
+  result?: MatchResult;
+};
+
+type AdminResultsScreenProps = {
+  tournament: TournamentView;
 };
 
 const emptyDraftScore: DraftScore = {
@@ -29,7 +32,7 @@ const emptyDraftScore: DraftScore = {
   home: ""
 };
 
-const getDraftScoresFromResults = (results: CompletedMatchResult[]) =>
+const getDraftScoresFromResults = (results: MatchResult[]) =>
   Object.fromEntries(
     results.map((result) => [
       result.matchId,
@@ -68,52 +71,48 @@ const parseDraftScore = (draftScore: DraftScore | undefined) => {
   };
 };
 
-const upsertResult = (results: CompletedMatchResult[], nextResult: CompletedMatchResult) => {
+const upsertResult = (results: MatchResult[], nextResult: MatchResult) => {
   const currentResults = results.filter((result) => result.matchId !== nextResult.matchId);
 
   return [...currentResults, nextResult];
 };
 
-export function AdminResultsScreen() {
-  const [draftScores, setDraftScores] = useState<Record<string, DraftScore>>(() =>
-    getDraftScoresFromResults(completedMatchResults)
-  );
+export function AdminResultsScreen({ tournament }: AdminResultsScreenProps) {
+  const [draftScores, setDraftScores] = useState<Record<string, DraftScore>>({});
   const [error, setError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [isConfigured, setIsConfigured] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [isResultsLoading, setIsResultsLoading] = useState(false);
   const [password, setPassword] = useState("");
-  const [results, setResults] = useState<CompletedMatchResult[]>(completedMatchResults);
+  const [results, setResults] = useState<MatchResult[]>([]);
   const [savingMatchId, setSavingMatchId] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState("all");
   const [statusMessage, setStatusMessage] = useState("");
 
-  const groupOptions = useMemo(() => getGroupOptions(matches), []);
+  const groupOptions = useMemo(() => getGroupOptions(tournament.matches), [tournament.matches]);
   const filteredMatches = useMemo(
     () =>
-      [...matches]
+      [...tournament.matches]
         .filter((match) => selectedGroup === "all" || match.group === selectedGroup)
         .sort((leftMatch, rightMatch) => Date.parse(leftMatch.startsAtIso) - Date.parse(rightMatch.startsAtIso)),
-    [selectedGroup]
+    [selectedGroup, tournament.matches]
   );
   const resultsByMatchId = useMemo(() => new Map(results.map((result) => [result.matchId, result])), [results]);
 
   const loadResults = useCallback(async () => {
-    const response = await fetch("/api/match-history", {
-      credentials: "include"
-    });
+    setIsResultsLoading(true);
 
-    if (!response.ok) {
-      throw new Error("Не удалось загрузить результаты.");
+    try {
+      const nextResults = await fetchMatchHistory();
+
+      setResults(nextResults);
+      setDraftScores(getDraftScoresFromResults(nextResults));
+    } finally {
+      setIsResultsLoading(false);
     }
-
-    const data = (await response.json()) as MatchHistoryResponse;
-    const nextResults = Array.isArray(data.results) ? data.results : [];
-
-    setResults(nextResults);
-    setDraftScores(getDraftScoresFromResults(nextResults));
   }, []);
 
   useEffect(() => {
@@ -227,7 +226,9 @@ export function AdminResultsScreen() {
         return;
       }
 
-      setResults((currentResults) => upsertResult(currentResults, data.result as CompletedMatchResult));
+      const nextResult = data.result;
+
+      setResults((currentResults) => upsertResult(currentResults, nextResult));
       setStatusMessage("Результат сохранен.");
     } catch {
       setError("API недоступен.");
@@ -350,6 +351,7 @@ export function AdminResultsScreen() {
 
       {error ? <p className={styles.error}>{error}</p> : null}
       {statusMessage ? <p className={styles.status}>{statusMessage}</p> : null}
+      {isResultsLoading ? <p className={styles.status}>Загружаем результаты.</p> : null}
 
       <section className={styles.resultsPanel} aria-label="Матчи">
         {filteredMatches.map((match) => {

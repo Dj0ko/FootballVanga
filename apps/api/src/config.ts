@@ -5,6 +5,10 @@ export type ApiConfig = {
   host: string;
   port: number;
   databaseUrl?: string;
+  footballDataApiToken?: string;
+  footballDataBaseUrl?: string;
+  footballDataCompetitionCode?: string;
+  footballDataSeason?: string;
 };
 
 const parsePort = (value: string | undefined, fallback: number) => {
@@ -26,5 +30,9 @@ export const readConfig = (env: NodeJS.ProcessEnv = process.env): ApiConfig => (
   nodeEnv: env.NODE_ENV ?? "development",
   host: env.HOST ?? "localhost",
   port: parsePort(env.PORT, 4100),
-  databaseUrl: env.DATABASE_URL
+  databaseUrl: env.DATABASE_URL,
+  footballDataApiToken: env.FOOTBALL_DATA_API_TOKEN,
+  footballDataBaseUrl: env.FOOTBALL_DATA_BASE_URL,
+  footballDataCompetitionCode: env.FOOTBALL_DATA_COMPETITION_CODE ?? "WC",
+  footballDataSeason: env.FOOTBALL_DATA_SEASON ?? "2026"
 });

@@ -1,8 +1,10 @@
+import type { MatchResult } from "@footballvanga/shared";
+
 import type { InMemoryFootballStore, StoredMatchResult } from "./inMemoryRoomRepository.js";
 import type { MatchResultRepository } from "./matchResultRepository.js";
 import { TOURNAMENT_MATCH_IDS } from "./tournamentMetadata.js";
 
-const cloneMatchResult = (result: StoredMatchResult): StoredMatchResult => ({
+const cloneMatchResult = (result: StoredMatchResult): MatchResult => ({
   finishedAtIso: result.finishedAtIso,
   matchId: result.matchId,
   score: {
@@ -31,7 +33,8 @@ export const createInMemoryMatchResultRepository = (store: InMemoryFootballStore
       score: {
         away: score.away,
         home: score.home
-      }
+      },
+      source: "manual"
     };
 
     store.matchResults.set(matchId, result);
@@ -39,8 +42,52 @@ export const createInMemoryMatchResultRepository = (store: InMemoryFootballStore
     return cloneMatchResult(result);
   };
 
+  const saveImportedMatchResult: MatchResultRepository["saveImportedMatchResult"] = async ({
+    finishedAt,
+    matchId,
+    score
+  }) => {
+    if (!knownMatchIds.has(matchId)) {
+      return null;
+    }
+
+    const existingResult = store.matchResults.get(matchId);
+
+    if (existingResult?.source === "manual") {
+      return {
+        result: cloneMatchResult(existingResult),
+        status: "skipped_manual"
+      };
+    }
+
+    if (existingResult && existingResult.score.home === score.home && existingResult.score.away === score.away) {
+      return {
+        result: cloneMatchResult(existingResult),
+        status: "unchanged"
+      };
+    }
+
+    const result: StoredMatchResult = {
+      finishedAtIso: finishedAt.toISOString(),
+      matchId,
+      score: {
+        away: score.away,
+        home: score.home
+      },
+      source: "import"
+    };
+
+    store.matchResults.set(matchId, result);
+
+    return {
+      result: cloneMatchResult(result),
+      status: existingResult ? "updated" : "created"
+    };
+  };
+
   return {
     listMatchResults,
+    saveImportedMatchResult,
     saveMatchResult
   };
 };

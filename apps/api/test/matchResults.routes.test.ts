@@ -5,6 +5,7 @@ import type { MatchResult } from "@footballvanga/shared";
 
 import { hashAdminPassword } from "../src/adminAuth.ts";
 import { buildServer } from "../src/index.ts";
+import type { ResultImportSummary } from "../src/resultImportTypes.ts";
 
 const baseConfig = {
   host: "localhost",
@@ -21,6 +22,10 @@ type MatchHistoryResponse = {
 type SaveMatchResultResponse = {
   ok: boolean;
   result: MatchResult;
+};
+
+type SyncResultsResponse = ResultImportSummary & {
+  ok: boolean;
 };
 
 const buildAdminApp = async () =>
@@ -232,4 +237,81 @@ test("admin match result writes persist to public match history", async (t) => {
   });
   assert.equal(typeof saveBody.result.finishedAtIso, "string");
   assert.deepEqual(savedHistoryResult, saveBody.result);
+});
+
+test("admin result sync requires session and importer configuration", async (t) => {
+  const configuredApp = await buildAdminApp();
+  const appWithImporter = await buildServer(
+    {
+      ...baseConfig,
+      adminPasswordHash: await hashAdminPassword("operator-pass"),
+      adminSessionSecret: "test-admin-session-secret"
+    },
+    {
+      resultImporter: {
+        syncResults: async () => ({
+          finalGroups: ["a"],
+          finishedAtIso: "2026-06-10T09:00:01.000Z",
+          matchesCreated: 1,
+          matchesSeen: 1,
+          matchesSkippedManual: 0,
+          matchesSkippedUnmapped: 0,
+          matchesUnchanged: 0,
+          matchesUpdated: 0,
+          provider: "test-provider",
+          recalculatedParticipants: 2,
+          startedAtIso: "2026-06-10T09:00:00.000Z",
+          standingsCreated: 1,
+          standingsSeen: 1,
+          standingsSkippedManual: 0,
+          standingsSkippedPending: 0,
+          standingsSkippedUnmapped: 0,
+          standingsUnchanged: 0,
+          standingsUpdated: 0,
+          status: "success",
+          warnings: []
+        })
+      }
+    }
+  );
+  const adminCookie = await getAdminCookie(appWithImporter);
+
+  t.after(async () => {
+    await configuredApp.close();
+    await appWithImporter.close();
+  });
+
+  const missingSessionResponse = await appWithImporter.inject({
+    method: "POST",
+    url: "/api/admin/results/sync"
+  });
+  const unconfiguredImporterResponse = await configuredApp.inject({
+    headers: {
+      cookie: adminCookie
+    },
+    method: "POST",
+    url: "/api/admin/results/sync"
+  });
+  const syncResponse = await appWithImporter.inject({
+    headers: {
+      cookie: adminCookie
+    },
+    method: "POST",
+    url: "/api/admin/results/sync"
+  });
+  const syncBody = readJson<SyncResultsResponse>(syncResponse.body);
+
+  assert.equal(missingSessionResponse.statusCode, 401);
+  assert.deepEqual(readJson(missingSessionResponse.body), {
+    message: "Admin session is required."
+  });
+  assert.equal(unconfiguredImporterResponse.statusCode, 503);
+  assert.deepEqual(readJson(unconfiguredImporterResponse.body), {
+    message: "Result import is not configured."
+  });
+  assert.equal(syncResponse.statusCode, 200);
+  assert.equal(syncBody.ok, true);
+  assert.equal(syncBody.matchesCreated, 1);
+  assert.equal(syncBody.standingsCreated, 1);
+  assert.deepEqual(syncBody.finalGroups, ["a"]);
 });

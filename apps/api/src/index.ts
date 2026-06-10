@@ -21,6 +21,7 @@ import {
 } from "./adminAuth.js";
 import { type ApiConfig, readConfig } from "./config.js";
 import { createDatabasePool } from "./database.js";
+import { createFootballDataProvider } from "./footballDataProvider.js";
 import { createGroupStandingResultRepository, type GroupStandingResultRepository } from "./groupStandingResultRepository.js";
 import { createInMemoryGroupStandingResultRepository } from "./inMemoryGroupStandingResultRepository.js";
 import { createInMemoryMatchResultRepository } from "./inMemoryMatchResultRepository.js";
@@ -37,6 +38,8 @@ import {
 } from "./participantRepository.js";
 import { hashPassword, verifyPassword } from "./passwordHash.js";
 import { createPredictionRepository, type PredictionRepository } from "./predictionRepository.js";
+import { createResultImporter } from "./resultImporter.js";
+import type { ResultImporter } from "./resultImportTypes.js";
 import { createRoomRepository, type RoomRepository } from "./roomRepository.js";
 import { createScoringRepository, type ScoringRepository } from "./scoringRepository.js";
 import {
@@ -93,6 +96,7 @@ type BuildServerDependencies = {
   matchResultRepository?: MatchResultRepository | null;
   participantRepository?: ParticipantRepository | null;
   predictionRepository?: PredictionRepository | null;
+  resultImporter?: ResultImporter | null;
   roomRepository?: RoomRepository | null;
   scoringRepository?: ScoringRepository | null;
   tournamentRepository?: TournamentRepository | null;
@@ -443,6 +447,26 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
     dependencies.scoringRepository === undefined ? scoringRepository : dependencies.scoringRepository;
   const resolvedTournamentRepository =
     dependencies.tournamentRepository === undefined ? tournamentRepository : dependencies.tournamentRepository;
+  const resolvedResultImporter =
+    dependencies.resultImporter === undefined
+      ? config.footballDataApiToken &&
+        resolvedTournamentRepository &&
+        resolvedMatchResultRepository &&
+        resolvedGroupStandingResultRepository
+        ? createResultImporter({
+            groupStandingResultRepository: resolvedGroupStandingResultRepository,
+            matchResultRepository: resolvedMatchResultRepository,
+            provider: createFootballDataProvider({
+              apiToken: config.footballDataApiToken,
+              baseUrl: config.footballDataBaseUrl,
+              competitionCode: config.footballDataCompetitionCode,
+              season: config.footballDataSeason
+            }),
+            scoringRepository: resolvedScoringRepository,
+            tournamentRepository: resolvedTournamentRepository
+          })
+        : null
+      : dependencies.resultImporter;
   const app = Fastify({
     logger: config.nodeEnv !== "test"
   });
@@ -1159,6 +1183,44 @@ export const buildServer = async (config: ApiConfig = readConfig(), dependencies
       };
     }
   );
+
+  app.post("/api/admin/results/sync", async (request, reply) => {
+    if (!isAdminConfigured(config)) {
+      reply.code(503);
+      return {
+        message: "Admin access is not configured."
+      };
+    }
+
+    if (!hasAdminSession(config, request.headers.cookie)) {
+      reply.code(401);
+      return {
+        message: "Admin session is required."
+      };
+    }
+
+    if (!resolvedResultImporter) {
+      reply.code(503);
+      return {
+        message: "Result import is not configured."
+      };
+    }
+
+    const summary = await resolvedResultImporter.syncResults();
+
+    if (summary.status === "failed") {
+      reply.code(502);
+      return {
+        ...summary,
+        ok: false
+      };
+    }
+
+    return {
+      ...summary,
+      ok: true
+    };
+  });
 
   app.post("/api/admin/scoring/recalculate", async (request, reply) => {
     if (!isAdminConfigured(config)) {

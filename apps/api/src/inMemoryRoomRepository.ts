@@ -40,9 +40,13 @@ export type StoredParticipantPrediction = {
   updatedAtIso: string;
 };
 
-export type StoredMatchResult = MatchResult;
+export type StoredMatchResult = MatchResult & {
+  source: "import" | "manual";
+};
 
-export type StoredGroupStandingResult = GroupStandingPrediction;
+export type StoredGroupStandingResult = GroupStandingPrediction & {
+  source: "import" | "manual";
+};
 
 export type StoredParticipantSession = {
   expiresAtIso: string;

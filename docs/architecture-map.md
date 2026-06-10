@@ -47,6 +47,7 @@ Shared helpers:
 - `passwordHash.ts` - scrypt password/code hashing.
 - `sessionToken.ts` - participant session token generation and SHA-256 token hashing.
 - `adminAuth.ts` - admin password verification and signed HTTP-only cookie.
+- `footballDataProvider.ts` / `resultImporter.ts` / `importResultsCli.ts` - football-data.org result sync, provider mapping, and one-shot scheduled import command.
 - `scoringCalculator.ts` - in-memory scoring logic used by fallback tests/storage.
 - `tournamentMetadata.ts` - static metadata and prediction-status helpers.
 - `tournamentData.ts` - static World Cup fallback data.
@@ -93,6 +94,7 @@ Admin:
 - `GET /api/admin/group-standings`
 - `PUT /api/admin/groups/:groupId/standings`
 - `PUT /api/admin/matches/:matchId/result`
+- `POST /api/admin/results/sync`
 - `POST /api/admin/scoring/recalculate`
 
 Access rules:
@@ -101,6 +103,7 @@ Access rules:
 - Participant lists, room leaderboard, and room prediction reads require a valid participant bearer token for that room.
 - Prediction writes require current participant session and are rejected at/after the tournament deadline.
 - Admin endpoints require configured admin credentials and admin session cookie.
+- Admin result sync additionally requires `FOOTBALL_DATA_API_TOKEN`; imported records preserve manual result/standing overrides.
 - Public global leader prediction reads are allowed only after the shared deadline and only for current global top-5 entries.
 
 ## Frontend Map
@@ -129,7 +132,7 @@ Screens:
 - `screens/room-entry` - room password then participant display name/code.
 - `screens/room-lobby` - room overview and participant sidebar.
 - `screens/workspace` - prediction overview/detail, editable own view and read-only other/public views.
-- `screens/admin-results` - hidden operator screen for match scores and official group standings.
+- `screens/admin-results` - hidden operator screen for match scores, current/final group standings, manual sync, and scoring recalculation.
 
 Shared frontend components:
 
@@ -143,7 +146,9 @@ API tests live in `apps/api/test`.
 - `rooms.routes.test.ts` - room storage and room password behavior.
 - `participants.routes.test.ts` - participant identity/session behavior.
 - `predictions.routes.test.ts` - prediction read/write/deadline validation.
-- `matchResults.routes.test.ts` - admin match result behavior plus group-standing endpoint validation.
+- `matchResults.routes.test.ts` - admin match result behavior, group-standing endpoint validation, and manual result sync route behavior.
+- `footballDataProvider.test.ts` - raw football-data.org matches/standings response parsing.
+- `resultImporter.test.ts` - provider data mapping, manual override preservation, and pending group-table sync behavior.
 - `scoring.routes.test.ts` - score recalculation, room/global leaderboards, official group-standing scoring.
 - `scoringCalculator.test.ts` - scoring unit logic.
 - `tournament.routes.test.ts` - tournament endpoint.

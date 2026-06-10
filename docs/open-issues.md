@@ -8,19 +8,19 @@ Last updated: 2026-06-10
 
 No active review findings are currently blocking the small/local rollout.
 
-## Product/Data Follow-Ups
+## Recently Resolved
 
 ### Automatic Result Import
 
-Manual operator result entry exists. Scheduled automatic result sync remains future work.
+Resolved on 2026-06-10.
 
-Open questions:
+The API can sync World Cup 2026 match scores and current group standings from football-data.org when `FOOTBALL_DATA_API_TOKEN` is configured. Imported records use `source = 'import'`, while manual operator result/standing writes remain `source = 'manual'` and are not overwritten by later imports.
 
-- Which external data source?
-- What polling schedule?
-- How to reconcile imported corrections with manual overrides?
+Covered by:
 
-## Recently Resolved
+- provider fixture test for raw football-data.org matches/standings response parsing;
+- importer test for provider mapping, manual match-result preservation, and skipping group tables before a played match;
+- route test for admin authorization and configured importer behavior.
 
 ### P2: PostgreSQL Participant Creation Race
 

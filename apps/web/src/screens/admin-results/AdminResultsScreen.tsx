@@ -15,7 +15,17 @@ import {
   verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeft, GripVertical, ListOrdered, LockKeyhole, LogOut, RotateCw, Save, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  CloudDownload,
+  GripVertical,
+  ListOrdered,
+  LockKeyhole,
+  LogOut,
+  RotateCw,
+  Save,
+  ShieldCheck
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
 
 import type { GroupStandingPrediction, MatchResult } from "@footballvanga/shared";
@@ -44,6 +54,27 @@ type AdminGroupStandingsResponse = {
   message?: string;
   ok?: boolean;
   standings?: GroupStandingPrediction[];
+};
+
+type AdminSyncResponse = {
+  finalGroups?: string[];
+  matchesCreated?: number;
+  matchesSeen?: number;
+  matchesSkippedManual?: number;
+  matchesSkippedUnmapped?: number;
+  matchesUnchanged?: number;
+  matchesUpdated?: number;
+  message?: string;
+  ok?: boolean;
+  recalculatedParticipants?: number;
+  standingsCreated?: number;
+  standingsSeen?: number;
+  standingsSkippedManual?: number;
+  standingsSkippedPending?: number;
+  standingsSkippedUnmapped?: number;
+  standingsUnchanged?: number;
+  standingsUpdated?: number;
+  warnings?: string[];
 };
 
 type AdminResultsScreenProps = {
@@ -146,6 +177,30 @@ const upsertResult = (results: MatchResult[], nextResult: MatchResult) => {
   return [...currentResults, nextResult];
 };
 
+const toCount = (value: number | undefined) => value ?? 0;
+
+const formatSyncSummary = (data: AdminSyncResponse) => {
+  const changedMatches = toCount(data.matchesCreated) + toCount(data.matchesUpdated);
+  const changedStandings = toCount(data.standingsCreated) + toCount(data.standingsUpdated);
+  const manualSkips = toCount(data.matchesSkippedManual) + toCount(data.standingsSkippedManual);
+  const unmappedSkips = toCount(data.matchesSkippedUnmapped) + toCount(data.standingsSkippedUnmapped);
+  const pendingGroups = toCount(data.standingsSkippedPending);
+  const warning = data.warnings?.[0] ? ` Предупреждение: ${data.warnings[0]}` : "";
+
+  return [
+    `Sync завершен: матчи ${changedMatches}/${toCount(data.matchesSeen)}, таблицы ${changedStandings}/${toCount(
+      data.standingsSeen
+    )}.`,
+    `Без изменений: ${toCount(data.matchesUnchanged) + toCount(data.standingsUnchanged)}.`,
+    manualSkips ? `Ручных правок пропущено: ${manualSkips}.` : "",
+    pendingGroups ? `Групп без сыгранных матчей пропущено: ${pendingGroups}.` : "",
+    unmappedSkips ? `Не сопоставлено: ${unmappedSkips}.` : "",
+    `Пересчитано участников: ${toCount(data.recalculatedParticipants)}.${warning}`
+  ]
+    .filter(Boolean)
+    .join(" ");
+};
+
 type StandingTeamRowProps = {
   position: number;
   teamId: string;
@@ -192,6 +247,7 @@ export function AdminResultsScreen({ tournament }: AdminResultsScreenProps) {
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [isResultsLoading, setIsResultsLoading] = useState(false);
   const [isStandingsLoading, setIsStandingsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [password, setPassword] = useState("");
   const [results, setResults] = useState<MatchResult[]>([]);
   const [savingGroupId, setSavingGroupId] = useState<string | null>(null);
@@ -249,7 +305,7 @@ export function AdminResultsScreen({ tournament }: AdminResultsScreenProps) {
       const data = (await response.json()) as AdminGroupStandingsResponse;
 
       if (!response.ok) {
-        throw new Error(data.message ?? "Не удалось загрузить итоговые места.");
+        throw new Error(data.message ?? "Не удалось загрузить текущие места.");
       }
 
       setStandingDrafts(createStandingDraftsFromResults(tournament, data.standings ?? []));
@@ -478,6 +534,33 @@ export function AdminResultsScreen({ tournament }: AdminResultsScreenProps) {
     }
   };
 
+  const syncResults = async () => {
+    setError("");
+    setStatusMessage("");
+    setIsSyncing(true);
+
+    try {
+      const response = await fetch("/api/admin/results/sync", {
+        credentials: "include",
+        method: "POST"
+      });
+
+      const data = (await response.json()) as AdminSyncResponse;
+
+      if (!response.ok || !data.ok) {
+        setError(data.message ?? "Не удалось синхронизировать результаты.");
+        return;
+      }
+
+      await Promise.all([loadResults(), loadGroupStandings()]);
+      setStatusMessage(formatSyncSummary(data));
+    } catch {
+      setError("API недоступен.");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   if (isCheckingSession) {
     return (
       <main className={styles.shell}>
@@ -558,22 +641,29 @@ export function AdminResultsScreen({ tournament }: AdminResultsScreenProps) {
           </select>
         </label>
 
-        <button type="button" className={styles.recalculateButton} onClick={recalculate} disabled={isRecalculating}>
-          <RotateCw size={18} aria-hidden="true" />
-          Пересчитать очки
-        </button>
+        <div className={styles.toolbarActions}>
+          <button type="button" className={styles.syncButton} onClick={syncResults} disabled={isSyncing}>
+            <CloudDownload size={18} aria-hidden="true" />
+            {isSyncing ? "Sync идет" : "Sync"}
+          </button>
+
+          <button type="button" className={styles.recalculateButton} onClick={recalculate} disabled={isRecalculating}>
+            <RotateCw size={18} aria-hidden="true" />
+            Пересчитать очки
+          </button>
+        </div>
       </section>
 
       {error ? <p className={styles.error}>{error}</p> : null}
       {statusMessage ? <p className={styles.status}>{statusMessage}</p> : null}
       {isResultsLoading ? <p className={styles.status}>Загружаем результаты.</p> : null}
-      {isStandingsLoading ? <p className={styles.status}>Загружаем итоговые места.</p> : null}
+      {isStandingsLoading ? <p className={styles.status}>Загружаем текущие места.</p> : null}
 
       <section className={styles.standingsPanel} aria-labelledby="standings-title">
         <div className={styles.standingsHeader}>
           <div>
-            <p className={styles.eyebrow}>Официальные итоги</p>
-            <h2 id="standings-title">Итоговые места групп</h2>
+            <p className={styles.eyebrow}>Текущая таблица</p>
+            <h2 id="standings-title">Места групп сейчас</h2>
           </div>
           <ListOrdered size={22} aria-hidden="true" />
         </div>

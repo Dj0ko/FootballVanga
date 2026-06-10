@@ -40,6 +40,9 @@ PORT=4100
 DATABASE_URL=postgresql://footballvanga:<password>@127.0.0.1:5432/footballvanga
 ADMIN_PASSWORD_HASH=<generated with npm run admin:hash-password>
 ADMIN_SESSION_SECRET=<generated with npm run admin:session-secret>
+FOOTBALL_DATA_API_TOKEN=<free football-data.org API token>
+FOOTBALL_DATA_COMPETITION_CODE=WC
+FOOTBALL_DATA_SEASON=2026
 ```
 
 Generate admin values from the repo root:
@@ -131,6 +134,92 @@ Logs:
 ```bash
 sudo journalctl -u footballvanga-server -f
 ```
+
+## Result Import Timer
+
+Automatic result sync uses the free football-data.org API token from `/etc/footballvanga.env`.
+
+Manual one-shot run after the API build exists:
+
+```bash
+cd /opt/footballvanga
+set -a
+. /etc/footballvanga.env
+set +a
+npm run import:results
+```
+
+Create `/etc/systemd/system/footballvanga-result-import.service`:
+
+```ini
+[Unit]
+Description=FootballVanga result import
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/footballvanga
+EnvironmentFile=/etc/footballvanga.env
+ExecStart=/usr/bin/npm run import:results
+User=footballvanga
+Group=footballvanga
+```
+
+Create `/etc/systemd/system/footballvanga-result-import.timer`.
+
+If the VPS timezone is `Europe/Moscow`, use:
+
+```ini
+[Unit]
+Description=Run FootballVanga result import four times per day
+
+[Timer]
+OnCalendar=*-*-* 02:45:00
+OnCalendar=*-*-* 06:15:00
+OnCalendar=*-*-* 09:45:00
+OnCalendar=*-*-* 22:45:00
+Persistent=true
+AccuracySec=1min
+Unit=footballvanga-result-import.service
+
+[Install]
+WantedBy=timers.target
+```
+
+If the VPS timezone is UTC, use the converted schedule instead:
+
+```ini
+[Unit]
+Description=Run FootballVanga result import four times per day
+
+[Timer]
+OnCalendar=*-*-* 03:15:00
+OnCalendar=*-*-* 06:45:00
+OnCalendar=*-*-* 19:45:00
+OnCalendar=*-*-* 23:45:00
+Persistent=true
+AccuracySec=1min
+Unit=footballvanga-result-import.service
+
+[Install]
+WantedBy=timers.target
+```
+
+Enable the timer:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now footballvanga-result-import.timer
+sudo systemctl list-timers footballvanga-result-import.timer --no-pager
+```
+
+Logs:
+
+```bash
+sudo journalctl -u footballvanga-result-import.service -n 50 --no-pager
+```
+
+The hidden admin screen also has a manual `Sync` button. Imported rows use `source = 'import'`; manual operator result and standing writes use `source = 'manual'` and are not overwritten by later imports.
 
 ## Nginx
 
@@ -227,6 +316,7 @@ From a browser after Nginx is live:
 - Open `/admin/results`.
 - Log in as admin.
 - Save one match result or official group standing only when ready.
+- If `FOOTBALL_DATA_API_TOKEN` is configured, run manual `Sync` and confirm the summary is shown.
 - Confirm leaderboard recalculation still works.
 
 ## Rollback

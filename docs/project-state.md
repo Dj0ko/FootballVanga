@@ -39,7 +39,7 @@ Version 1 scope:
 - Participants can view other predictions in the same room, but can edit only their own prediction.
 - Predictions remain editable until one backend-calculated tournament deadline.
 - Version 1 covers only the World Cup 2026 group stage.
-- Match results and official final group standings are operator-only through hidden `/admin/results`.
+- Match results and current/final group standings are operator-only through hidden `/admin/results`.
 - Rooms screen shows public match history and an API-backed global top-5 leaderboard.
 - Rules live in a dialog after the welcome screen, not on the welcome screen.
 
@@ -66,14 +66,15 @@ Scoring:
 - Correct match outcome: 1 point.
 - Exact score: 2 additional points, so exact score gives 3 total match points.
 - Leaderboard ties use exact score hits.
-- Prediction saves, match-result writes, and official group-standing writes trigger scoring recalculation when scoring storage is configured.
+- Prediction saves, match-result writes, group-standing writes, and imported result syncs trigger scoring recalculation when scoring storage is configured.
 
 Admin:
 
 - Hidden route: `/admin/results`.
 - Admin login uses `POST /api/admin/login` and an HTTP-only signed admin cookie.
 - Match scores save through `PUT /api/admin/matches/:matchId/result`.
-- Official final group standings save through `PUT /api/admin/groups/:groupId/standings`.
+- Current/final group standings save through `PUT /api/admin/groups/:groupId/standings`.
+- Manual automatic result sync runs through `POST /api/admin/results/sync` when `FOOTBALL_DATA_API_TOKEN` is configured.
 - Normal room passwords and participant codes must never grant result-editing access.
 
 ## Active Risks
@@ -89,6 +90,7 @@ Recently resolved:
 - P2 PostgreSQL participant creation race was fixed: duplicate display-name insert conflicts now produce controlled participant entry behavior.
 - P2 empty request bodies were fixed: known affected endpoints now handle missing payloads with validation/auth responses.
 - P1 group-standing scoring gap was fixed: official standings can now be saved by the operator and scored.
+- Automatic result import was added: football-data.org sync can import match scores/current standings, preserve manual overrides, and recalculate scores.
 
 ## Local Policy
 

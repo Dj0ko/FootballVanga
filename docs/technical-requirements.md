@@ -29,7 +29,7 @@ docs
 
 `apps/web` contains the browser application.
 
-`apps/api` contains the HTTP API and future background result import worker.
+`apps/api` contains the HTTP API and scheduled result import command.
 
 `apps/api/db/migrations` contains PostgreSQL schema migrations.
 
@@ -75,6 +75,7 @@ The API is responsible for:
 - Scoring.
 - Result storage.
 - Manual result entry.
+- football-data.org result import for match scores and current group standings.
 - Operator/admin authorization for result writes.
 - Scheduled result import polling.
 
@@ -173,6 +174,7 @@ POST /api/admin/logout
 GET  /api/admin/group-standings
 PUT  /api/admin/groups/:groupId/standings
 PUT  /api/admin/matches/:matchId/result
+POST /api/admin/results/sync
 POST /api/admin/scoring/recalculate
 ```
 
@@ -191,8 +193,9 @@ Current room endpoints use the same API shape in both storage modes:
 - `GET /api/rooms/:roomId/leaderboard` returns the room leaderboard only when called with a valid participant session bearer token for that room.
 - `GET /api/leaderboard/global` returns the public top players across rooms, filtered to participants with positive score and ordered by total points, exact score hits, and creation order.
 - `GET /api/leaderboard/global/:roomId/predictions/:participantId` returns a public read-only prediction only after the shared deadline and only for current global top-5 entries.
-- `GET /api/admin/group-standings` returns operator-only official group-standing results for the hidden admin result screen.
-- `PUT /api/admin/groups/:groupId/standings` saves operator-only official final team order for one group and triggers scoring recalculation when scoring storage is configured.
+- `GET /api/admin/group-standings` returns operator-only current/final group-standing results for the hidden admin result screen.
+- `PUT /api/admin/groups/:groupId/standings` saves operator-only current/final team order for one group and triggers scoring recalculation when scoring storage is configured.
+- `POST /api/admin/results/sync` runs a football-data.org sync when the importer is configured, imports provider match scores/current standings without overwriting manual overrides, and triggers scoring recalculation when scoring storage is configured.
 - `POST /api/admin/scoring/recalculate` recalculates score snapshots through operator-only admin authorization.
 
 When `DATABASE_URL` is configured, room storage is PostgreSQL-backed and expects applied migrations.
@@ -245,7 +248,7 @@ Run automated tests:
 npm test
 ```
 
-The current test suite covers shared password hashing, room API route behavior, participant entry/session behavior, prediction read/write/deadline behavior, match result/admin behavior, official group-standing writes and group-position scoring, scoring recalculation, room leaderboard behavior, global leaderboard/public leader prediction behavior, tournament endpoint behavior with Fastify injection, and World Cup 2026 seed migration invariants.
+The current test suite covers shared password hashing, room API route behavior, participant entry/session behavior, prediction read/write/deadline behavior, match result/admin behavior, current/final group-standing writes and group-position scoring, raw football-data.org response parsing, result importer mapping/manual-override behavior, manual admin sync route behavior, scoring recalculation, room leaderboard behavior, global leaderboard/public leader prediction behavior, tournament endpoint behavior with Fastify injection, and World Cup 2026 seed migration invariants.
 
 Run database migrations:
 
@@ -266,6 +269,9 @@ PORT
 DATABASE_URL
 ADMIN_PASSWORD_HASH
 ADMIN_SESSION_SECRET
+FOOTBALL_DATA_API_TOKEN
+FOOTBALL_DATA_COMPETITION_CODE
+FOOTBALL_DATA_SEASON
 ```
 
 Local defaults are documented in `apps/api/.env.example`.
@@ -273,6 +279,8 @@ Local defaults are documented in `apps/api/.env.example`.
 For local in-memory room and participant storage, leave `DATABASE_URL` empty. Set it only when the API should use PostgreSQL.
 
 Production values belong in `/etc/footballvanga.env` on the server and must not be committed.
+
+`FOOTBALL_DATA_API_TOKEN` enables automatic/manual result sync. `FOOTBALL_DATA_COMPETITION_CODE` defaults to `WC`, and `FOOTBALL_DATA_SEASON` defaults to `2026`.
 
 Generate an admin password hash with:
 
@@ -296,4 +304,4 @@ npm run admin:session-secret
 6. PostgreSQL-backed match results and official group-standing results from the hidden admin result-entry screen. Completed as API-backed result reads/writes with in-memory local storage and PostgreSQL storage when `DATABASE_URL` is set.
 7. Scoring recalculation and room/global leaderboards. Completed as PostgreSQL-backed `score_snapshots`, in-memory fallback scoring, admin-triggered recalculation, automatic recalculation after prediction/result writes, a participant-session-protected room leaderboard endpoint, and a public global top-5 leaderboard with post-deadline public prediction views.
 8. Deployment hardening on the VPS.
-9. Scheduled automatic result import.
+9. Scheduled automatic result import. Implemented as `npm run import:results`, plus `POST /api/admin/results/sync` for a manual admin sync.

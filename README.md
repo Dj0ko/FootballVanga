@@ -78,9 +78,9 @@ Deployment runbook:
 docs/deployment-runbook.md
 ```
 
-## Admin Result Entry
+## Admin Results
 
-Manual result entry is available through the hidden admin route:
+Manual result entry and manual result sync are available through the hidden admin route:
 
 ```text
 /admin/results
@@ -98,6 +98,7 @@ Production values belong in `/etc/footballvanga.env`:
 ```text
 ADMIN_PASSWORD_HASH
 ADMIN_SESSION_SECRET
+FOOTBALL_DATA_API_TOKEN
 ```
 
 ## Production Direction

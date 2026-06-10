@@ -69,6 +69,7 @@
 .primaryButton,
 .secondaryButton,
 .recalculateButton,
+.syncButton,
 .saveButton {
   display: flex;
   min-height: 42px;
@@ -87,6 +88,12 @@
   color: #ffffff;
 }
 
+.syncButton {
+  border: 0;
+  background: #2d6cdf;
+  color: #ffffff;
+}
+
 .secondaryButton {
   border: 1px solid #d9dfd4;
   background: #ffffff;
@@ -101,6 +108,7 @@
 
 .primaryButton:disabled,
 .recalculateButton:disabled,
+.syncButton:disabled,
 .saveButton:disabled {
   cursor: not-allowed;
   opacity: 0.65;
@@ -116,11 +124,19 @@
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 260px) auto;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
   align-items: end;
   gap: 14px;
   margin-bottom: 14px;
   padding: 16px;
+}
+
+.toolbarActions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .standingsPanel {
@@ -387,8 +403,14 @@
 
   .secondaryButton,
   .recalculateButton,
+  .syncButton,
   .saveButton {
     width: 100%;
+  }
+
+  .toolbarActions {
+    display: grid;
+    justify-content: stretch;
   }
 
   .actions {
